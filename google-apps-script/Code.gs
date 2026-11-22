@@ -644,6 +644,7 @@ const STATS_REGROUPEMENTS = [
   ['Lien SGO', ['lien_sgo']],
   ['Lien SharePoint', ['lien_sharepoint']],
   ['Lien sitesecurite', ['aviso_sitesecurite']],
+  ['Lien Légifrance', ['aviso_legifrance']],
   ['Lien Explorateur', ['lien_explorateur']]
 ];
 const STATS_COLONNES_FIXES = ['Ref_User', 'Date', 'Version', 'Snippets personnels', 'Articles DatAviso'];
@@ -659,6 +660,7 @@ const STATS_LIBELLES = {
   aviso_plus: 'Aviso : « + » (créer un snippet)',
   aviso_dataviso: 'Aviso : icône verte (DatAviso AI)',
   aviso_sitesecurite: 'Aviso : lien sitesecurite',
+  aviso_legifrance: 'Aviso : lien Légifrance',
   aviso_corbeille: 'Aviso : corbeille',
   aviso_annuler: 'Aviso : annuler l\'effacement',
   lien_sgo: 'Lien SGO',

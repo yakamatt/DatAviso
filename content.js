@@ -555,29 +555,27 @@ function insertAvisoEditIcon(container, snippet) {
   placerIcone(container, btn);
 }
 
-// Lien vers le texte réglementaire correspondant sur sitesecurite.com, ouvert dans un nouvel
-// onglet. Indépendant du bouton d'insertion : il ne dépend que du Référentiel de la ligne, et
-// s'affiche donc aussi sur les lignes sans snippet (consulter l'article reste utile même quand
-// il n'y a rien à insérer). Un vrai <a> (plutôt qu'un window.open au clic) pour conserver les
-// usages du navigateur : clic milieu, Ctrl+clic, "ouvrir dans un nouvel onglet".
-// Absent si le code ne correspond à aucun article ERP connu, plutôt que de mener à une 404.
-function insertAvisoLawLink(container, refCode) {
+// Lien vers un texte réglementaire, ouvert dans un nouvel onglet : sitesecurite.com (ERP
+// sécurité incendie) ou Légifrance (trame HAND). Indépendant du bouton d'insertion : il ne
+// dépend que de la ligne, et s'affiche donc aussi sur les lignes sans snippet (consulter
+// l'article reste utile même quand il n'y a rien à insérer). Un vrai <a> (plutôt qu'un
+// window.open au clic) pour conserver les usages du navigateur : clic milieu, Ctrl+clic,
+// "ouvrir dans un nouvel onglet". Une seule icône de ce type par ligne (AVISO_LAW_CLASS).
+// lien = { url, titre, icone, statistique }
+function insertAvisoLawLink(container, lien) {
   if (container.querySelector('.' + AVISO_LAW_CLASS)) return;
-
-  const url = sitesecuriteUrlForCode(refCode);
-  if (!url) return;
 
   const link = document.createElement('a');
   link.className = AVISO_LAW_CLASS;
-  link.href = url;
+  link.href = lien.url;
   link.target = '_blank';
   link.rel = 'noopener noreferrer';
-  link.title = `Consulter le texte réglementaire ${refCode} sur sitesecurite.com`;
+  link.title = lien.titre;
   link.style.cssText = AVISO_BTN_STYLE;
 
   const img = document.createElement('img');
-  img.src = chrome.runtime.getURL('icons/sitesecurite32.png');
-  img.alt = `Texte réglementaire ${refCode}`;
+  img.src = chrome.runtime.getURL(lien.icone);
+  img.alt = lien.titre;
   img.style.cssText = AVISO_IMG_STYLE;
   link.appendChild(img);
 
@@ -585,10 +583,28 @@ function insertAvisoLawLink(container, refCode) {
   // lieu — on empêche juste Aviso de réagir au clic (bascule lecture/édition de la cellule).
   link.addEventListener('click', (e) => {
     e.stopPropagation();
-    compterUsage('aviso_sitesecurite');
+    compterUsage(lien.statistique);
   });
 
   placerIcone(container, link);
+}
+
+// Trame HAND (RICT b, accessibilité PMR) : seules les lignes « Art. N » du référentiel portent
+// un lien vers l'article de l'arrêté du 20 avril 2017 (« Art. 7.1 » -> 7-1, « Art.7.2.II » -> 7-2).
+// Les sous-rubriques et points en dessous n'en ont pas. Renvoie une Map ligne -> numéro d'article,
+// vide hors de la trame HAND.
+function articlesPmrParLigne() {
+  const parLigne = new Map();
+  // Le titre du référentiel (« RICT b - HAND - Accessibilité... ») est dans un fieldset.
+  const titreTrame = [...document.querySelectorAll('fieldset')].some(f => /\bHAND\b/.test(f.textContent));
+  if (!titreTrame) return parLigne;
+
+  document.querySelectorAll('#report_builder tbody tr[data-ref-id]').forEach(tr => {
+    const libelle = tr.querySelector('td.referentiel.content');
+    const m = libelle && /^\s*Art\.\s*(\d+)(?:\.(\d))?/.exec(libelle.textContent);
+    if (m) parLigne.set(tr, m[2] ? `${m[1]}-${m[2]}` : m[1]);
+  });
+  return parLigne;
 }
 
 // Icône verte : ajoute les données DatAviso de cet article (tous ses champs, sans la ligne de
@@ -1161,6 +1177,7 @@ function scanLiensAffaire() {
 
 function scanAvisoTable() {
   lierEditeursRiches();
+  const articlesPmr = articlesPmrParLigne();
   document.querySelectorAll('td.referentiel.content').forEach(refCell => {
     const tr = refCell.closest('tr');
     const dispoCell = tr && tr.querySelector('td.dispositions');
@@ -1185,7 +1202,25 @@ function scanAvisoTable() {
 
     const match = SNIPPETS.find(s => triggerToRefCode(s.trigger) === refCode);
     if (match) insertAvisoIcon(container, dispoCell, match);
-    insertAvisoLawLink(container, refCode);
+
+    const urlSitesecurite = sitesecuriteUrlForCode(refCode);
+    const numeroPmr = articlesPmr.get(tr);
+    const urlLegifrance = numeroPmr && legifranceUrlForArticlePmr(numeroPmr);
+    if (urlSitesecurite) {
+      insertAvisoLawLink(container, {
+        url: urlSitesecurite,
+        titre: `Consulter le texte réglementaire ${refCode} sur sitesecurite.com`,
+        icone: 'icons/sitesecurite32.png',
+        statistique: 'aviso_sitesecurite'
+      });
+    } else if (urlLegifrance) {
+      insertAvisoLawLink(container, {
+        url: urlLegifrance,
+        titre: `Consulter l'article ${numeroPmr} de l'${LEGIFRANCE_ARRETE_PMR_TITRE} sur Légifrance`,
+        icone: 'icons/legifrance32.png',
+        statistique: 'aviso_legifrance'
+      });
+    }
 
     const article = IMPORTED_ARTICLES.find(a => a.code === refCode);
     if (article) insertAvisoImportIcon(container, dispoCell, article);
