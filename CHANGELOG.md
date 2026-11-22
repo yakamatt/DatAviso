@@ -1,5 +1,8 @@
 # Changelog — DatAviso
 
+## v2.27.0 — 2026-11-22
+- **Un clic sur le titre de l'affaire copie son numéro** (#87). Dans la barre bleue d'Aviso, le titre copie le numéro d'affaire dans le presse-papiers, et un message discret, « Numéro d'affaire … copié », apparaît sous le titre puis disparaît seul. Pendant une sélection à la souris (un double-clic sur le numéro, par exemple), le clic ne copie rien et ne remplace pas le presse-papiers : la sélection se copie comme d'habitude. Un clic sur un lien du titre suit ce lien
+
 ## v2.26.0 — 2026-11-22
 - **Lien Légifrance sur la trame HAND (accessibilité PMR)** (#72). Chaque rubrique de la trame HAND se rattache à un article de l'arrêté du 20 avril 2017 (accessibilité des ERP neufs) : l'icône qui ouvre sitesecurite.com sur les ERP ouvre désormais, sur cette trame, l'article correspondant sur Légifrance, dans un nouvel onglet. Seules les lignes « Art. N » portent l'icône : le numéro est lu dans leur libellé (« Art. 7.1 » mène à l'article 7-1), et les sous-rubriques qui suivent n'en ont pas. L'icône apparaît aussi sur les lignes sans snippet
 - Les liens Légifrance pointent sur la version publiée au Journal officiel : la table `legifrance-articles.js` la désigne article par article. Une modification ultérieure de l'arrêté demandera de régénérer la table

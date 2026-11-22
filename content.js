@@ -1101,7 +1101,8 @@ window.addEventListener('resize', () => {
 // nom de fichier. Deux causes possibles, traitées toutes les deux ici : un `user-select: none`
 // hérité de la barre, qu'Aviso dessine comme un menu, et le glisser-déposer d'un lien. Si la
 // sélection résiste encore, chercher un handler `selectstart` annulé côté Aviso.
-function rendreTitreSelectionnable(titre) {
+// Le même titre copie aussi le numéro d'affaire au clic (#87).
+function preparerTitreAffaire(titre) {
   if (titre.dataset.seSelectionnable) return;
   titre.dataset.seSelectionnable = '1';
 
@@ -1117,7 +1118,46 @@ function rendreTitreSelectionnable(titre) {
   liens.forEach(a => { a.draggable = false; });
 
   // Curseur de texte seulement si rien n'est cliquable : sur un lien, il masquerait l'affordance.
-  if (!liens.length) titre.style.setProperty('cursor', 'text');
+  if (!liens.length) titre.style.setProperty('cursor', 'copy');
+
+  // Un clic sur le titre copie le numéro d'affaire (#87). Pas pendant une sélection : un
+  // double-clic sur le numéro reste une sélection, et ne doit pas remplacer le presse-papiers
+  // par le seul numéro sans que l'utilisateur l'ait demandé.
+  titre.addEventListener('click', (e) => {
+    if (e.target.closest('a')) return;
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed) return;
+    const numero = numeroAffaire(titre.textContent);
+    if (!numero) return;
+    navigator.clipboard.writeText(numero).then(
+      () => afficherConfirmationCopie(`Numéro d'affaire ${numero} copié`, titre),
+      () => afficherConfirmationCopie('Copie impossible', titre)
+    );
+  });
+}
+
+// Message discret posé sous le titre, qui disparaît seul. Un seul à la fois : le suivant
+// remplace celui qui reste.
+function afficherConfirmationCopie(message, ancre) {
+  document.getElementById('snippet-expander-copie')?.remove();
+  const toast = document.createElement('div');
+  toast.id = 'snippet-expander-copie';
+  toast.textContent = message;
+  const rect = ancre.getBoundingClientRect();
+  Object.assign(toast.style, {
+    position: 'fixed',
+    top: `${rect.bottom + 6}px`,
+    left: `${rect.left}px`,
+    zIndex: '2147483647',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    background: 'rgba(0, 0, 0, 0.75)',
+    color: '#fff',
+    font: '12px system-ui, sans-serif',
+    pointerEvents: 'none',
+  });
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 1500);
 }
 
 function scanLiensAffaire() {
@@ -1142,7 +1182,7 @@ function scanLiensAffaire() {
   const bar = document.getElementById('main_bar');
   // Hors du bloc des liens, qui n'opère qu'à partir d'un numéro d'affaire : le titre se
   // sélectionne même quand ce numéro est illisible.
-  if (titre) rendreTitreSelectionnable(titre);
+  if (titre) preparerTitreAffaire(titre);
   if (titre && bar) {
     const numero = numeroAffaire(titre.textContent);
     const existant = bar.querySelector('.' + AVISO_LIENS_CLASS);
