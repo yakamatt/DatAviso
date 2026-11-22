@@ -64,7 +64,7 @@ chrome.runtime.onInstalled.addListener((details) => {
     // Première sauvegarde du Clausier Personnel dès l'installation de la mise à jour, sans
     // attendre l'alarme : c'est elle qui récupère les snippets locaux déjà existants.
     await sauvegarderClausierPersonnel()
-      .catch(e => console.error('[Snippet Expander] Sauvegarde du Clausier Personnel :', e.message));
+      .catch(e => console.error('[DatAviso] Sauvegarde du Clausier Personnel :', e.message));
 
     scheduleAlarms();
   })();
@@ -91,7 +91,7 @@ function scheduleAlarms() {
 // simple "Failed to fetch" devenait une promesse rejetée non gérée ("Uncaught (in promise)").
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === SYNC_ALARM) {
-    synchroniser().catch(e => console.error('[Snippet Expander] Échec de la synchro automatique :', e.message));
+    synchroniser().catch(e => console.error('[DatAviso] Échec de la synchro automatique :', e.message));
   }
 });
 
@@ -143,9 +143,9 @@ async function synchroniser() {
     return await pullFromSheet();
   } finally {
     await sauvegarderClausierPersonnel()
-      .catch(e => console.error('[Snippet Expander] Sauvegarde du Clausier Personnel :', e.message));
+      .catch(e => console.error('[DatAviso] Sauvegarde du Clausier Personnel :', e.message));
     await envoyerStatistiques()
-      .catch(e => console.error('[Snippet Expander] Statistiques d\'utilisation :', e.message));
+      .catch(e => console.error('[DatAviso] Statistiques d\'utilisation :', e.message));
   }
 }
 

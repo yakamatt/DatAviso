@@ -13,8 +13,8 @@ function brancherPartage(boutonCopie, lienMail, statut) {
       .catch(() => { statut.textContent = `Copie impossible, voici le lien : ${STORE_URL}`; });
   });
 
-  const sujet = 'Snippet Expander, une extension Chrome pour rédiger plus vite';
-  const corps = 'Bonjour,\n\nJe te recommande Snippet Expander : un raccourci court (par exemple /GN4) se remplace ' +
+  const sujet = 'DatAviso, une extension Chrome pour rédiger plus vite';
+  const corps = 'Bonjour,\n\nJe te recommande DatAviso : un raccourci court (par exemple /GN4) se remplace ' +
     'par le texte complet dans n\'importe quel champ, et sur Aviso des icônes insèrent les dispositions types ' +
     'en un clic.\n\nPour l\'installer :\n' + STORE_URL + '\n';
   lienMail.href = `mailto:?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(corps)}`;

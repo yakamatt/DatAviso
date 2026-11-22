@@ -1,4 +1,11 @@
-# Changelog — Snippet Expander
+# Changelog — DatAviso
+
+## v2.24.0 — 2026-11-22
+- **L'extension s'appelle désormais DatAviso** (#71). Le nom change partout où il est visible : manifeste, popup, page Paramètres, tutoriel, pied de page, et le courriel de recommandation du bouton de partage
+- **La fonctionnalité d'import garde son nom « DatAviso AI »** : l'extension est la marque, l'import en est le module d'analyse. Le chevauchement est voulu
+- **Les identifiants internes ne changent pas** : classes CSS des icônes Aviso (`snippet-expander-aviso-*`), identifiant de la fenêtre d'édition, clés de `chrome.storage`, noms des onglets du Sheets. Les renommer aurait cassé les installations existantes et les sauvegardes déjà en place, sans rien apporter — ils ne sont jamais montrés à l'utilisateur
+- **Le dépôt devient `yakamatt/DatAviso`.** GitHub conserve une redirection depuis l'ancienne adresse ; le lien « Code source » des Paramètres et l'URL de la politique de confidentialité pointent sur la nouvelle
+- ⚠️ **La fiche du Chrome Web Store reste à renommer** : elle se modifie depuis le Developer Dashboard, pas depuis le dépôt, et tout changement de nom passe par une revue Google. L'URL d'installation (`STORE_URL` dans `partage.js`) continuera de fonctionner, son segment `snippet-expander` n'étant qu'un libellé — l'identifiant seul résout l'extension
 
 ## v2.23.2 — 2026-11-22
 - **Le titre de l'affaire se sélectionne à la souris dans Aviso** (#81). La barre bleue est traitée comme un menu et porte un `user-select: none` : son titre, numéro et intitulé compris, ne pouvait pas être copié, alors que c'est le texte le plus souvent repris de la page — vers un courriel, une recherche ou un nom de fichier. Seul le titre change, le reste de la barre demeure insélectionnable. Les liens qu'il contient ne se glissent plus : un cliqué-glissé y démarrait un glisser-déposer au lieu d'une sélection

@@ -617,7 +617,7 @@ function renderVersionFooter(lastSync) {
   const version = chrome.runtime.getManifest().version;
   const footer = document.getElementById('version-footer');
   const syncTxt = lastSync ? `Dernière mise à jour : ${new Date(lastSync).toLocaleString()}` : 'Aucune mise à jour effectuée';
-  footer.textContent = `Snippet Expander v${version} — build du ${BUILD_DATE} — ${syncTxt}`;
+  footer.textContent = `DatAviso v${version} — build du ${BUILD_DATE} — ${syncTxt}`;
 }
 
 // ---------- Zone de test ----------
