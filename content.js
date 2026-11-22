@@ -1124,11 +1124,15 @@ function preparerTitreAffaire(titre) {
   // double-clic sur le numéro reste une sélection, et ne doit pas remplacer le presse-papiers
   // par le seul numéro sans que l'utilisateur l'ait demandé.
   titre.addEventListener('click', (e) => {
-    if (e.target.closest('a')) return;
+    // Le titre est lui-même un <a> dans Aviso : seul un lien contenu dans le titre laisse le clic
+    // passer. Un `closest('a')` seul renverrait le titre et bloquerait la copie.
+    const lien = e.target.closest('a');
+    if (lien && lien !== titre) return;
     const selection = window.getSelection();
     if (selection && !selection.isCollapsed) return;
     const numero = numeroAffaire(titre.textContent);
     if (!numero) return;
+    e.preventDefault();
     navigator.clipboard.writeText(numero).then(
       () => afficherConfirmationCopie(`Numéro d'affaire ${numero} copié`, titre),
       () => afficherConfirmationCopie('Copie impossible', titre)
