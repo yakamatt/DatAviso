@@ -1080,6 +1080,30 @@ window.addEventListener('resize', () => {
   }, 200);
 });
 
+// Le titre de l'affaire n'est pas sélectionnable à la souris, alors que c'est le texte le plus
+// souvent recopié de la page — numéro et intitulé partent dans un courriel, une recherche ou un
+// nom de fichier. Deux causes possibles, traitées toutes les deux ici : un `user-select: none`
+// hérité de la barre, qu'Aviso dessine comme un menu, et le glisser-déposer d'un lien. Si la
+// sélection résiste encore, chercher un handler `selectstart` annulé côté Aviso.
+function rendreTitreSelectionnable(titre) {
+  if (titre.dataset.seSelectionnable) return;
+  titre.dataset.seSelectionnable = '1';
+
+  // `user-select` s'hérite, mais un descendant peut imposer sa propre valeur : le reste de la
+  // barre reste insélectionnable, seul le titre change. `!important` parce que la règle d'Aviso
+  // en porte un, qui l'emporterait sinon sur un style en ligne.
+  titre.style.setProperty('user-select', 'text', 'important');
+  titre.style.setProperty('-webkit-user-select', 'text', 'important');
+
+  // Un lien se glisse au lieu de se sélectionner : sans cela, un cliqué-glissé sur le titre
+  // démarre un glisser-déposer du lien et aucune sélection n'a lieu.
+  const liens = (titre.matches('a') ? [titre] : []).concat([...titre.querySelectorAll('a')]);
+  liens.forEach(a => { a.draggable = false; });
+
+  // Curseur de texte seulement si rien n'est cliquable : sur un lien, il masquerait l'affordance.
+  if (!liens.length) titre.style.setProperty('cursor', 'text');
+}
+
 function scanLiensAffaire() {
   // Liste Plans Affaires : une affaire par ligne, numéro dans la colonne "N° plan affaire".
   document.querySelectorAll('td[headers="plans_affaires_n_degrees_plan_affaire_th"]').forEach(td => {
@@ -1100,6 +1124,9 @@ function scanLiensAffaire() {
   // Barre bleue : le titre de l'affaire ouverte, vide sur les pages sans affaire (la liste).
   const titre = document.getElementById('cur_plan_aff');
   const bar = document.getElementById('main_bar');
+  // Hors du bloc des liens, qui n'opère qu'à partir d'un numéro d'affaire : le titre se
+  // sélectionne même quand ce numéro est illisible.
+  if (titre) rendreTitreSelectionnable(titre);
   if (titre && bar) {
     const numero = numeroAffaire(titre.textContent);
     const existant = bar.querySelector('.' + AVISO_LIENS_CLASS);
