@@ -41,6 +41,8 @@ Remplace automatiquement un texte court (ex: `;sig`) par un texte prédéfini, d
 
   Elles apparaissent sur la liste **Plans Affaires**, empilées à droite de la loupe de chaque ligne et dans le même style qu'elle (blanc sur fond bleu), et dans la **barre bleue** d'une affaire ouverte, à gauche du sélecteur « BTS ». Chacune se désactive dans Paramètres avancés > Liens vers l'affaire.
 
+  Un clic sur le titre de l'affaire dans la barre bleue copie le numéro d'affaire, et un message discret le confirme quelques secondes. Pendant une sélection à la souris (un double-clic sur le numéro, par exemple), le clic ne copie rien : la sélection se copie comme d'habitude, avec ⌘C ou Ctrl+C.
+
 ## 2 bis. DatAviso AI — importer des données de dossier par article
 
 Indépendamment des snippets, l'extension peut mémoriser des **données propres à un dossier**, article par article, pour les réinjecter dans Aviso. Ces données et les zones qui les gèrent sont regroupées sous le nom **DatAviso AI**.
