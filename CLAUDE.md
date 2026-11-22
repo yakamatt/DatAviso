@@ -159,6 +159,29 @@ Quand tu touches au contrat du POST, prévois toujours le script resté en versi
   pour l'utilisateur (étapes, maquettes, icônes), pour les nouveaux utilisateurs et ceux qui le
   rouvrent. Il n'y a pas de page de notes de mise à jour.
 
+## Travailler depuis une issue
+
+Le suivi se fait sur le GitHub Project <https://github.com/users/yakamatt/projects/1>, lié au
+dépôt. Champs : **Status** (`Idée` → `À faire` → `En cours` → `En revue` → `Fusionné (main)` →
+`Publié (Store)` — les deux derniers sont distincts, le Store ajoute le zip, la revue Google et la
+mise à jour du tutoriel), **Nature** (`Fonctionnalité`, `Correctif`, `Doc`, `Store / Conformité`)
+et **Version cible**, qui groupe ce qui part dans un même envoi.
+
+- **Une session par issue.** Elle s'ouvre sur le numéro : lire l'issue avec `gh issue view`, pas
+  attendre que son contenu soit collé.
+- **« Ne code rien » ouvre une phase de réflexion** : rendre les options et leurs conséquences,
+  sans toucher aux fichiers. Sans cette mention, la demande est à traiter.
+- **Une issue dont le corps ne dit pas ce qui est attendu** (ou qui décrit l'état actuel sans
+  demander de changement) n'est pas prête : le travail de la session est alors de la transformer
+  en demande exploitable, pas de devenir ce qu'elle ne dit pas.
+- **La conclusion retourne dans l'issue** avant la fin de la session — décision, options
+  écartées, et pourquoi. Le contexte d'une session disparaît ; l'issue est ce qui reste, et c'est
+  d'elle que repartira la suivante.
+- **Déplacer la carte** quand l'état change, et la rattacher au projet si elle n'y est pas
+  (`gh project item-add 1 --owner yakamatt --url <issue>`).
+- Une issue qui se découpe devient des **sous-issues** (`gh issue create --parent <n>`), pas une
+  liste de cases dans le corps : la progression du parent se calcule alors toute seule.
+
 ## Conventions de travail
 
 - **Deux ordres, exécutés sans redemander.** Sans l'un d'eux, ne rien pousser.
