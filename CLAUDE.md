@@ -1,4 +1,4 @@
-# Snippet Expander
+# DatAviso
 
 Extension Chrome **Manifest V3** d'expansion de texte, avec une intégration métier sur
 l'application **Aviso** (contrôle technique bâtiment). Deux sources de snippets :

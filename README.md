@@ -1,4 +1,4 @@
-# Snippet Expander — extension Chrome gratuite
+# DatAviso — extension Chrome gratuite
 
 Remplace automatiquement un texte court (ex: `;sig`) par un texte prédéfini, dans n'importe quel champ de texte du navigateur — **100% gratuit**. Les snippets viennent de deux sources : le **Clausier Commun**, un tableau Google Sheets partagé que l'extension lit sans jamais le modifier, et le **Clausier Personnel**, propre à chaque utilisateur et enregistré dans son navigateur.
 
@@ -9,7 +9,7 @@ Remplace automatiquement un texte court (ex: `;sig`) par un texte prédéfini, d
 3. Cliquez sur **Charger l'extension non empaquetée**
 4. Sélectionnez le dossier `snippet-expander` (celui qui contient `manifest.json`)
 5. L'icône de l'extension apparaît dans la barre d'outils — **un clic dessus ouvre un petit menu** (voir section 2)
-6. À la première installation, la page Options s'ouvre automatiquement avec une bannière 📌 vous invitant à épingler l'extension (clic sur le puzzle 🧩 en haut du navigateur, puis sur l'épingle à côté de Snippet Expander) pour l'avoir toujours sous la main
+6. À la première installation, la page Options s'ouvre automatiquement avec une bannière 📌 vous invitant à épingler l'extension (clic sur le puzzle 🧩 en haut du navigateur, puis sur l'épingle à côté de DatAviso) pour l'avoir toujours sous la main
 
 ## 2. Utiliser l'extension
 
@@ -175,7 +175,7 @@ git push -u origin main
 (Remplacez l'URL par celle de votre dépôt. Git vous demandera de vous authentifier — utilisez un token d'accès personnel GitHub si le mot de passe classique est refusé : **Settings > Developer settings > Personal access tokens**.)
 
 ### c. Mettre à jour une installation en mode développeur
-Une extension chargée en mode développeur (« non empaquetée ») ne se met pas à jour toute seule, et l'extension ne vérifie plus GitHub elle-même depuis la v2.23.0 (le bloc « Mise à jour de l'extension (mode développeur) » des Paramètres a été retiré, avec l'accès à `raw.githubusercontent.com`). Pour passer à une nouvelle version : remplacez les fichiers dans **le même dossier**, puis cliquez sur **Actualiser** ⟳ sur la carte « Snippet Expander » de `chrome://extensions`. Comme `chrome.storage` est lié à l'identifiant de l'extension (dérivé du chemin du dossier), vos snippets et paramètres sont conservés tant que vous réutilisez ce dossier.
+Une extension chargée en mode développeur (« non empaquetée ») ne se met pas à jour toute seule, et l'extension ne vérifie plus GitHub elle-même depuis la v2.23.0 (le bloc « Mise à jour de l'extension (mode développeur) » des Paramètres a été retiré, avec l'accès à `raw.githubusercontent.com`). Pour passer à une nouvelle version : remplacez les fichiers dans **le même dossier**, puis cliquez sur **Actualiser** ⟳ sur la carte « DatAviso » de `chrome://extensions`. Comme `chrome.storage` est lié à l'identifiant de l'extension (dérivé du chemin du dossier), vos snippets et paramètres sont conservés tant que vous réutilisez ce dossier.
 
 ## 6. Publier sur le Chrome Web Store
 
@@ -208,7 +208,7 @@ Dans l'onglet **"Privacy practices"** du dashboard :
   - **`alarms`** : actualiser périodiquement le Clausier Commun (toutes les heures par défaut), et envoyer à ce moment la sauvegarde et les statistiques anonymes
 - **Avant chaque soumission**, vérifier que toute nouvelle permission est réellement utilisée par une installation depuis le Store, pas seulement en mode développeur
 - **Usage des données** : l'extension lit du texte dans les champs des pages visitées (fonctionnalité cœur), sans jamais l'envoyer, et récupère vos snippets depuis l'URL Google Sheets que *vous* configurez. Deux données sont envoyées vers ce même Google Sheets, chacune désactivable : la **copie anonyme du Clausier Personnel** (déclencheur, contenu, identifiant aléatoire, date), à déclarer comme « Website content » (la catégorie du formulaire la plus proche d'un texte rédigé par l'utilisateur), et les **statistiques d'utilisation anonymes** (nombre d'utilisations de chaque fonction par jour, version, nombre de snippets personnels et d'articles DatAviso AI, identifiant aléatoire), à déclarer comme « activité de l'utilisateur ». Ni l'une ni l'autre n'est vendue ou utilisée à d'autres fins que l'amélioration de l'extension et du Clausier Commun
-- **URL de politique de confidentialité** : `https://github.com/yakamatt/Snippets-Expander/blob/main/PRIVACY.md` ([PRIVACY.md](PRIVACY.md)). À mettre à jour, avec la date en tête, dès qu'une donnée envoyée ou une permission change
+- **URL de politique de confidentialité** : `https://github.com/yakamatt/DatAviso/blob/main/PRIVACY.md` ([PRIVACY.md](PRIVACY.md)). À mettre à jour, avec la date en tête, dès qu'une donnée envoyée ou une permission change
 - Cochez la case de certification de conformité au programme développeur
 
 ### e. Soumettre pour examen

@@ -1,8 +1,8 @@
-# Politique de confidentialité — Snippet Expander
+# Politique de confidentialité — DatAviso
 
 *Dernière mise à jour : 7 novembre 2026 (version 2.23.0)*
 
-Snippet Expander est une extension Chrome gratuite qui remplace un raccourci court (un « déclencheur », par exemple `/GN4`) par un texte complet, dans les champs de texte du navigateur, et ajoute des raccourcis à l'application Aviso. Cette page explique quelles données l'extension utilise, où elles vont, et comment garder la main dessus.
+DatAviso est une extension Chrome gratuite qui remplace un raccourci court (un « déclencheur », par exemple `/GN4`) par un texte complet, dans les champs de texte du navigateur, et ajoute des raccourcis à l'application Aviso. Cette page explique quelles données l'extension utilise, où elles vont, et comment garder la main dessus.
 
 ## Ce qui reste dans votre navigateur
 
@@ -47,4 +47,4 @@ Depuis la version 2.22.0, l'extension compte combien de fois chacune de ses fonc
 
 ## Contact
 
-Une question sur cette politique : utilisez le formulaire « ✉️ Donner mon avis » du popup de l'extension, ou ouvrez un ticket sur [github.com/yakamatt/Snippets-Expander/issues](https://github.com/yakamatt/Snippets-Expander/issues).
+Une question sur cette politique : utilisez le formulaire « ✉️ Donner mon avis » du popup de l'extension, ou ouvrez un ticket sur [github.com/yakamatt/DatAviso/issues](https://github.com/yakamatt/DatAviso/issues).
