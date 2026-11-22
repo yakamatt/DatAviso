@@ -1,5 +1,8 @@
 # Changelog — DatAviso
 
+## v2.27.1 — 2026-11-22
+- **Correctif : le clic sur le titre de l'affaire copie bien le numéro** (#87). Dans Aviso, le titre est lui-même un lien ; le clic était pris pour un clic sur un lien du titre, et rien ne se passait. Seul un lien contenu dans le titre laisse désormais le clic passer, et le titre n'ouvre plus rien au clic
+
 ## v2.27.0 — 2026-11-22
 - **Un clic sur le titre de l'affaire copie son numéro** (#87). Dans la barre bleue d'Aviso, le titre copie le numéro d'affaire dans le presse-papiers, et un message discret, « Numéro d'affaire … copié », apparaît sous le titre puis disparaît seul. Pendant une sélection à la souris (un double-clic sur le numéro, par exemple), le clic ne copie rien et ne remplace pas le presse-papiers : la sélection se copie comme d'habitude. Un clic sur un lien du titre suit ce lien
 
