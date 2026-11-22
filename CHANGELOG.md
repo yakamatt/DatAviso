@@ -1,5 +1,11 @@
 # Changelog — DatAviso
 
+## v2.25.0 — 2026-11-22
+- **À la revue, « Texte final » cumule le texte commun actuel et toutes les variantes proposées** (#78). Il ne reprenait que la variante la plus partagée : adopter remplaçait le texte commun au lieu de l'enrichir, et les autres remarques restaient dans leur colonne, à recopier à la main. Le garant élague désormais ce qu'il ne retient pas — retirer est plus sûr que de deviner ce qui manque. Les variantes suivent l'ordre de la revue (la plus partagée d'abord), séparées par un saut de ligne, et un texte commun absent ne laisse pas de ligne vide en tête
+- **La détection des retouches suit le nouveau pré-remplissage.** Elle comparait « Texte final » à la proposition seule : avec le cumul, toute ligne laissée intacte serait passée pour retouchée — marquée comme telle, et figée sur un cumul périmé au lieu de suivre les nouvelles variantes à la régénération suivante. Le pré-remplissage est reconstruit depuis la colonne `Variantes (JSON)`, seul endroit où les variantes subsistent intégralement, « Autres variantes » les mêlant à leur nombre d'utilisateurs
+- Une revue préparée avant cette version, ou dont la colonne JSON a été retouchée à la main, sera vue comme retouchée, une fois. C'est le sens prudent retenu — son texte est conservé et marqué pour relecture. Accepter aussi la proposition seule aurait effacé en silence la retouche du garant qui écarte sciemment le texte commun, et ce travail ne doit jamais se perdre sans confirmation
+- ⚠️ **`Code.gs` est à recopier dans l'éditeur Apps Script et à enregistrer.** Le menu Clausier s'exécute avec le code enregistré : aucun déploiement en « Nouvelle version » n'est nécessaire ici, contrairement aux changements de l'API appelée par l'extension. Aucun fichier de l'extension ne change dans cette version
+
 ## v2.24.0 — 2026-11-22
 - **L'extension s'appelle désormais DatAviso** (#71). Le nom change partout où il est visible : manifeste, popup, page Paramètres, tutoriel, pied de page, et le courriel de recommandation du bouton de partage
 - **La fonctionnalité d'import garde son nom « DatAviso AI »** : l'extension est la marque, l'import en est le module d'analyse. Le chevauchement est voulu
