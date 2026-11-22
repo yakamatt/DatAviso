@@ -27,6 +27,7 @@ Remplace automatiquement un texte court (ex: `;sig`) par un texte prédéfini, d
   - à leur place, sur une ligne **sans** snippet personnel, l'icône **"+"** (grise) crée ce snippet : la fenêtre d'édition s'ouvre avec un déclencheur qui reprend le Référentiel (`/GN13`) et un contenu prérempli avec **le texte déjà saisi dans "Dispositions réalisées"**. Une fois le snippet enregistré, il est **ajouté aussitôt à la cellule**, sans doublon : tout le snippet si la cellule était vide, ou seulement la suite si vous avez complété le texte prérempli (rien si vous l'avez réécrit). Le "+" laisse ensuite la place à l'icône jaune et au crayon ;
   - l'icône **bleue** **ajoute** le contenu du snippet du Clausier Commun, avec le même aperçu au survol. Elle n'apparaît que si le code correspond au déclencheur d'un snippet du Google Sheets ;
   - l'icône **sitesecurite.com** ouvre dans un nouvel onglet l'article du règlement de sécurité ERP correspondant, ancré directement sur l'article visé. Elle s'affiche dès que le code est un article ERP connu (voir `sitesecurite-articles.js`), **y compris sur les lignes sans snippet** — consulter le texte reste utile quand il n'y a rien à insérer ;
+  - sur la trame **HAND** (accessibilité PMR), la même icône ouvre sur **Légifrance** l'article de l'arrêté du 20 avril 2017 auquel la rubrique se rattache (`Art. 7.1` ouvre l'article 7-1). Elle s'affiche sur les lignes « Art. N » du référentiel, avec ou sans snippet (voir `legifrance-articles.js`) ;
   - l'icône **verte** ajoute les données **DatAviso AI** de cet article (voir ci-dessous), et affiche au survol le texte qui sera inséré. Elle n'apparaît que si un article importé porte le même code.
 
   Au bord droit de la cellule, une **corbeille** (visible dès que la cellule contient du texte, sur toutes les lignes) efface son contenu d'un clic. Elle devient aussitôt un bouton **"Annuler l'effacement"**, qui remet le texte tant que la cellule est restée vide.
@@ -142,7 +143,7 @@ Le menu **Clausier** du Google Sheets (ajouté par `Code.gs`, visible des édite
 
 **Clausier > Synthèse hebdomadaire des statistiques** (onglet `Synthèse_Hebdo`, une semaine du lundi au dimanche par ligne) et **Synthèse mensuelle** (onglet `Synthèse_Mensuelle`, un mois par ligne) donnent, de la période la plus récente à la plus ancienne :
 - les installations actives (extension ouverte au moins un jour) et les utilisateurs actifs (au moins une fonction utilisée) ;
-- en jaune : les totaux du **Clausier Personnel** (expansions au clavier + icône jaune) et du **Clausier Commun** (expansions au clavier + icône bleue), les clics sur l'**icône verte DatAviso AI**, puis l'usage de **chaque lien externe**, une colonne par lien : SGO, SharePoint, sitesecurite, Explorateur ;
+- en jaune : les totaux du **Clausier Personnel** (expansions au clavier + icône jaune) et du **Clausier Commun** (expansions au clavier + icône bleue), les clics sur l'**icône verte DatAviso AI**, puis l'usage de **chaque lien externe**, une colonne par lien : SGO, SharePoint, sitesecurite, Légifrance, Explorateur ;
 - le détail de chaque usage, puis les versions en service.
 
  Les lignes de plus de 24 mois sont supprimées de l'onglet `Statistiques` au fil des envois.
@@ -224,6 +225,7 @@ snippet-expander/
 ├── background.js          # Récupération Google Sheets, sauvegarde du Clausier Personnel, statistiques, tutoriel, alarmes
 ├── content.js              # Détection, temporisation et remplacement du texte + intégration Aviso
 ├── sitesecurite-articles.js # Table code d'article ERP -> page sitesecurite.com (générée, cf. en-tête)
+├── legifrance-articles.js # Table article de la trame HAND -> article de l'arrêté du 20 avril 2017 sur Légifrance
 ├── imported-data.js         # Analyse du texte importé (données de dossier par article)
 ├── clausier-fichiers.js     # Import/export du Clausier Personnel (.xlsx, .csv), sans dépendance
 ├── popup.html/css/js       # Popup de l'icône (barre d'outils) : clausiers, DatAviso AI, avis, Paramètres
