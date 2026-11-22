@@ -289,6 +289,35 @@ function texteNormalise_(texte) {
     .map(l => l.replace(/\s+$/, '')).join('\n').trim();
 }
 
+// Pré-remplissage de « Texte final » : le texte commun actuel, puis chaque variante proposée,
+// dans l'ordre d'affichage de la revue (la plus partagée d'abord). La revue sert à cumuler les
+// remarques pour enrichir un texte commun : ne reprendre que la variante majoritaire remplaçait
+// l'existant et laissait les autres remarques dans leur colonne, à recopier à la main. Le garant
+// élague ensuite ce qu'il ne retient pas — retirer est plus sûr que de deviner ce qui manque.
+//
+// Une variante identique au texte commun n'arrive jamais ici : elle est écartée au groupement.
+// Séparateur d'une insertion dans Aviso : un saut de ligne, aucun si le bloc précédent en finit
+// déjà par un. Les blocs vides sont ignorés, un texte commun absent (snippet nouveau) ne laisse
+// donc pas de ligne vide en tête.
+function cumulTexteFinal_(commun, variantes) {
+  return [String(commun || '')].concat((variantes || []).map(v => String(v || '')))
+    .filter(bloc => texteNormalise_(bloc))
+    .reduce((acc, bloc) => !acc ? bloc : acc + (acc.slice(-1) === '\n' ? '' : '\n') + bloc, '');
+}
+
+// Les variantes d'une ligne de revue, telles que la préparation les a écrites dans sa colonne
+// JSON (seul endroit où elles subsistent intégralement : « Autres variantes » les mêle à leur
+// nombre d'utilisateurs). Repli sur la seule proposition si la colonne est illisible — retouchée
+// à la main, ou revue d'une version antérieure : le pré-remplissage reconstruit est alors
+// incomplet et la ligne passera pour retouchée, ce qui est le sens prudent.
+function variantesLigne_(json, proposition) {
+  try {
+    const v = JSON.parse(String(json || ''));
+    if (Array.isArray(v) && v.length) return v;
+  } catch (e) { /* illisible : repli ci-dessous */ }
+  return [proposition];
+}
+
 function feuille_(nom, entete) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(nom);
@@ -347,8 +376,9 @@ function lireRevueEnCours_(revue) {
   if (revue.getLastRow() < 2) return resultat;
   const valeurs = revue.getRange(1, 1, revue.getLastRow(), revue.getLastColumn()).getValues();
   const col = nom => valeurs[0].indexOf(nom);
-  const c = { type: col('Type'), trigger: col('Déclencheur'), proposition: col('Proposition'), decision: col('Décision'),
-    texteFinal: col('Texte final'), cle: col('Clé') };
+  const c = { type: col('Type'), trigger: col('Déclencheur'), commun: col('Texte commun actuel'),
+    proposition: col('Proposition'), decision: col('Décision'), texteFinal: col('Texte final'),
+    cle: col('Clé'), variantes: col('Variantes (JSON)') };
   if (Object.values(c).some(i => i < 0)) {
     resultat.illisibles = valeurs.slice(1).filter(r => r.some(v => String(v).trim())).length;
     return resultat;
@@ -367,8 +397,19 @@ function lireRevueEnCours_(revue) {
       decision: decision === DECISION_ADOPTER || decision === DECISION_IGNORER ? decision : '',
       texteFinal,
       // Un Texte final vidé n'est pas une retouche : la nouvelle proposition le remplit.
+      // La comparaison porte sur le pré-remplissage (texte commun + proposition) et non sur la
+      // proposition seule : sinon toute ligne laissée intacte passerait pour retouchée dès que le
+      // texte commun n'est pas vide, serait marquée comme telle et figerait un cumul périmé au
+      // lieu de suivre la nouvelle proposition.
+      //
+      // Une revue préparée avant l'arrivée du cumul porte la proposition seule : elle sera donc
+      // vue comme retouchée, une fois. C'est volontairement le sens prudent — son texte est
+      // conservé et marqué pour relecture. Accepter aussi la proposition seule effacerait en
+      // silence la retouche du garant qui écarte sciemment le texte commun, et ce travail ne doit
+      // jamais se perdre sans confirmation.
       retouche: !!texteNormalise_(texteFinal) &&
-        texteNormalise_(texteFinal) !== texteNormalise_(r[c.proposition])
+        texteNormalise_(texteFinal) !== texteNormalise_(
+          cumulTexteFinal_(r[c.commun], variantesLigne_(r[c.variantes], r[c.proposition])))
     };
   });
   return resultat;
@@ -414,7 +455,7 @@ function preparerRevue() {
       .map(v => `(${v.nb} utilisateur${v.nb > 1 ? 's' : ''})\n${v.texte}`).join('\n\n———\n\n');
     let type = commun ? '✏️ Variante' : '🆕 Nouveau';
     let decision = '';
-    let texteFinal = variantes[0].texte;
+    let texteFinal = cumulTexteFinal_(commun ? commun.content : '', variantes.map(v => v.texte));
     // Ligne déjà travaillée dans la revue précédente : sa décision et son Texte final sont repris
     // tels quels, même si la proposition a changé depuis (le garant les a écrits, pas la revue).
     const avant = precedent.lignes[cle];
@@ -485,7 +526,7 @@ function preparerRevue() {
             '\n\n'
           : '') +
         `Pour chacune, choisissez « ${DECISION_ADOPTER} » ou « ${DECISION_IGNORER} » dans la colonne Décision. ` +
-        `« ${DECISION_ADOPTER} » enregistre la colonne Texte final, pré-remplie avec la proposition : retouchez-la si besoin.\n\nPuis : Clausier > Appliquer les décisions.`
+        `« ${DECISION_ADOPTER} » enregistre la colonne Texte final, pré-remplie avec le texte commun actuel suivi de toutes les variantes proposées : élaguez ce que vous ne retenez pas.\n\nPuis : Clausier > Appliquer les décisions.`
       : 'Aucune nouvelle proposition dans les sauvegardes.',
     ui.ButtonSet.OK);
 }
