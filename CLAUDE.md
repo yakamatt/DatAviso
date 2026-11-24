@@ -127,6 +127,16 @@ Les icônes s'insèrent dans la cellule « Dispositions réalisées », dans l'o
   l'URL de la page). `lierEditeurRiche` y branche depuis la page parente le listener de saisie,
   rebranché au scan, au survol et au focus. Le critère est l'**attribut** `src` absent, jamais
   l'URL du document. Ne pas ajouter `match_about_blank` : l'expansion s'y ferait deux fois.
+- **Boutons d'avis et de conformité** (`scanSelecteursAvis`, appelé par chaque scan) : une
+  rangée posée juste avant chaque `<select>` reconnu, qu'elle pilote (`input` + `change`, comme
+  un choix à la main) et dont elle suit l'état ; le menu fait foi. Relevé sur Aviso :
+  `td.remarques > #show_avis > select[name="verification[<id>][avis_id]"]`, options
+  `[Aucun]`, `Favorable` (1), `Observations` (2, **au pluriel** — une comparaison exacte à
+  « Observation » a laissé la v2.28.0 sans aucun bouton), `Hors mission` (5), `A préciser` (28),
+  `Sans Objet` (29). Familles dans `MENUS_AVIS`, reconnues à deux options propres comparées par
+  `cleAvis` (sans accents, ponctuation ni pluriel). Réglages `boutonsAvis` (actif par défaut) et
+  `masquerMenusAvis` (inactif par défaut, sans effet sans les boutons) : un menu masqué porte
+  `data-dataviso-menu-masque`, seul critère pour le réafficher.
 - L'intégration est toujours active sur Aviso (le réglage « Intégration Aviso » a été retiré en
   v2.18.0) et sans effet ailleurs (`isAvisoSite`).
 

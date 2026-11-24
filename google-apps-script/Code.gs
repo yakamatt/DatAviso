@@ -677,6 +677,8 @@ const STATS_LIBELLES = {
   reglage_lien_explorateur_off: 'Paramètres : lien Explorateur désactivé',
   reglage_lien_explorateur_on: 'Paramètres : lien Explorateur réactivé',
   reglage_statistiques_on: 'Paramètres : statistiques réactivées',
+  reglage_masquer_menus_avis_off: 'Paramètres : menus d\'avis réaffichés',
+  reglage_masquer_menus_avis_on: 'Paramètres : menus d\'avis masqués',
   lien_sgo: 'Lien SGO',
   lien_sharepoint: 'Lien SharePoint',
   lien_explorateur: 'Lien Explorateur',

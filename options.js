@@ -28,6 +28,8 @@ function load(ouverture = false) {
     document.getElementById('lien-sharepoint').checked = s.lienSharepoint !== false;
     document.getElementById('lien-explorateur').checked = s.lienExplorateur !== false;
     document.getElementById('boutons-avis').checked = s.boutonsAvis !== false;
+    document.getElementById('masquer-menus-avis').checked = s.masquerMenusAvis === true;
+    majMasquerMenusAvis();
     document.getElementById('sauvegarde-clausier').checked = s.sauvegardeClausier !== false;
     document.getElementById('statistiques-utilisation').checked = s.statistiquesUtilisation !== false;
     document.getElementById('sheet-url').value = s.sheetUrl || '';
@@ -552,17 +554,24 @@ document.getElementById('statistiques-utilisation').addEventListener('change', (
 // Liens vers l'affaire (SGO, SharePoint, Explorateur) et boutons d'avis : content.js écoute
 // syncSettings et pose ou retire les éléments aussitôt, sans recharger Aviso.
 [['lien-sgo', 'lienSgo'], ['lien-sharepoint', 'lienSharepoint'], ['lien-explorateur', 'lienExplorateur'],
-  ['boutons-avis', 'boutonsAvis']]
+  ['boutons-avis', 'boutonsAvis'], ['masquer-menus-avis', 'masquerMenusAvis']]
   .forEach(([id, cle]) => {
     document.getElementById(id).addEventListener('change', (e) => updateSyncSettings({ [cle]: e.target.checked }));
   });
+
+// Masquer les menus n'a de sens qu'avec les boutons : sans eux, la case est grisée (le réglage
+// est conservé, et content.js ne masque rien tant que les boutons sont désactivés).
+function majMasquerMenusAvis() {
+  document.getElementById('masquer-menus-avis').disabled = !document.getElementById('boutons-avis').checked;
+}
+document.getElementById('boutons-avis').addEventListener('change', majMasquerMenusAvis);
 
 // Statistiques des cases de réglage : chaque sens a sa clé (…_off, …_on, voir STATS_CLES) —
 // combien d'utilisateurs retirent une fonction est ce qui dit si elle gêne. Seul le sens part.
 // Les statistiques elles-mêmes sont à part, plus haut.
 [['sauvegarde-clausier', 'reglage_sauvegarde'], ['lien-sgo', 'reglage_lien_sgo'],
   ['lien-sharepoint', 'reglage_lien_sharepoint'], ['lien-explorateur', 'reglage_lien_explorateur'],
-  ['boutons-avis', 'reglage_boutons_avis']]
+  ['boutons-avis', 'reglage_boutons_avis'], ['masquer-menus-avis', 'reglage_masquer_menus_avis']]
   .forEach(([id, base]) => {
     document.getElementById(id).addEventListener('change', (e) => {
       compterUsage(base + (e.target.checked ? '_on' : '_off'));

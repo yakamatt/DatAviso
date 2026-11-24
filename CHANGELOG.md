@@ -1,5 +1,11 @@
 # Changelog — DatAviso
 
+## v2.31.0 — 2026-11-24
+- **Option pour masquer les menus déroulants doublés par les boutons** (#94) : Paramètres avancés > Boutons d'avis, case « Masquer les menus déroulants remplacés par les boutons », **décochée par défaut**. Elle masque les menus d'avis et de conformité qui portent une rangée de boutons, et eux seuls
+- Le menu masqué reste dans la page avec sa valeur : un bouton le pilote et Aviso l'enregistre comme avant. Il réapparaît aussitôt, sans recharger Aviso, si la case est décochée ou si les boutons sont désactivés : un menu n'est jamais masqué sans remplaçant. Sans les boutons, la case est grisée
+- **Statistiques** : la case est comptée dans ses deux sens (« menus d'avis masqués », « réaffichés »)
+- ⚠️ **`Code.gs` est à recopier dans l'éditeur Apps Script et à enregistrer** (libellés des deux compteurs). Aucun déploiement en « Nouvelle version » n'est nécessaire
+
 ## v2.30.0 — 2026-11-24
 - **Boutons colorés aussi sur le menu de conformité** (#94). Les menus « Aucun, Conforme, Non conforme, Hors mission, Sans objet » reçoivent la même rangée de boutons que le menu d'avis, sur une ligne : Conf. en vert, Non conf. en orange, Aucun, H.M. et S.O. en gris, libellé complet au survol. Le menu est reconnu à ses options « Conforme » et « Non conforme », et le menu d'avis reste reconnu comme avant
 - La case « Afficher les boutons d'avis » des Paramètres avancés couvre les deux menus

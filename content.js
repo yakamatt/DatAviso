@@ -14,6 +14,9 @@ let EXPANSION_DELAY_MS = 1000;
 let LIENS_AFFAIRE = { sgo: true, sharepoint: true, explorateur: true };
 // Boutons d'avis au-dessus du menu déroulant d'Aviso (Paramètres avancés). Actifs par défaut.
 let BOUTONS_AVIS = true;
+// Masquer les menus déroulants doublés par ces boutons (Paramètres avancés). Désactivé par défaut,
+// et sans effet quand les boutons sont désactivés : un menu n'est jamais masqué sans remplaçant.
+let MASQUER_MENUS_AVIS = false;
 let pendingTimeoutId = null;
 
 // Déclarés avant loadSnippets() car référencés depuis son callback : chrome.storage est
@@ -75,14 +78,19 @@ function appliquerReglages(s) {
   };
   if (JSON.stringify(LIENS_AFFAIRE) !== avant) aRetirer.push(AVISO_LIENS_CLASS);
   const boutonsAvis = s.boutonsAvis !== false;
-  if (boutonsAvis !== BOUTONS_AVIS) aRetirer.push(AVISO_AVIS_CLASS);
+  const masquerMenus = s.masquerMenusAvis === true;
+  if (boutonsAvis !== BOUTONS_AVIS || masquerMenus !== MASQUER_MENUS_AVIS) aRetirer.push(AVISO_AVIS_CLASS);
   BOUTONS_AVIS = boutonsAvis;
+  MASQUER_MENUS_AVIS = masquerMenus;
   return aRetirer;
 }
 
 function reglagesModifies(s) {
   const aRetirer = appliquerReglages(s || {});
-  if (aRetirer.length && isAvisoSite()) retirerIconesAviso(aRetirer);
+  if (!aRetirer.length || !isAvisoSite()) return;
+  // Les menus masqués réapparaissent d'abord ; le scan qui suit remasque ceux qui doivent l'être.
+  if (aRetirer.includes(AVISO_AVIS_CLASS)) reafficherMenusAvis();
+  retirerIconesAviso(aRetirer);
 }
 
 function loadSettings() {
@@ -1012,10 +1020,29 @@ function choisirAvis(select, option) {
   return true;
 }
 
+// Un menu masqué par l'extension porte cet attribut : c'est ce qui permet de le réafficher, et de
+// ne jamais toucher à un menu qu'Aviso aurait masqué lui-même. Le menu reste dans la page, avec
+// sa valeur : les boutons continuent de le piloter, et Aviso de l'enregistrer.
+const AVIS_MENU_MASQUE_ATTR = 'data-dataviso-menu-masque';
+
+function masquerMenuAvis(select) {
+  if (!MASQUER_MENUS_AVIS || select.hasAttribute(AVIS_MENU_MASQUE_ATTR)) return;
+  select.setAttribute(AVIS_MENU_MASQUE_ATTR, '');
+  select.style.display = 'none';
+}
+
+function reafficherMenusAvis() {
+  document.querySelectorAll(`select[${AVIS_MENU_MASQUE_ATTR}]`).forEach(select => {
+    select.removeAttribute(AVIS_MENU_MASQUE_ATTR);
+    select.style.display = '';
+  });
+}
+
 function insertAvisoBoutonsAvis(select, famille) {
   const existante = rangeesAvis.get(select);
   if (existante && existante.isConnected) {
     existante.majAvis();
+    masquerMenuAvis(select);
     return;
   }
 
@@ -1070,6 +1097,7 @@ function insertAvisoBoutonsAvis(select, famille) {
   if (orpheline && orpheline.classList.contains(AVISO_AVIS_CLASS)) orpheline.remove();
   select.insertAdjacentElement('beforebegin', rangee);
   rangeesAvis.set(select, rangee);
+  masquerMenuAvis(select);
 }
 
 function scanSelecteursAvis() {
