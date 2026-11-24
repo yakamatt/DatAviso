@@ -216,7 +216,9 @@ et **Version cible**, qui groupe ce qui part dans un même envoi.
     une colonne en tête de synthèse ;
   - le rappel « recopier `Code.gs` et enregistrer » dans le CHANGELOG et au « push gh » ;
   - PRIVACY.md si la nature des données comptées change.
-  Une case de réglage se compte dans ses deux sens, en deux clés (`…_off`, `…_on`).
+  Une case de réglage se compte dans ses deux sens, en deux clés (`…_off`, `…_on`), en
+  l'ajoutant au tableau des cases d'options.js. Exception : la case des statistiques ne compte
+  que sa réactivation (désactiver, c'est refuser d'être compté).
 - `.DS_Store` et `dist/` sont ignorés. Ne jamais les committer.
 - Code et commentaires en français, comme l'existant.
 
