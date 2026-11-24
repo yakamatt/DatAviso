@@ -1,5 +1,11 @@
 # Changelog — DatAviso
 
+## v2.28.0 — 2026-11-24
+- **Boutons d'avis au-dessus du menu déroulant d'Aviso** (#94). Une rangée de boutons colorés reprend les choix du menu (Aucun, Favorable, Observation, Hors mission, À préciser, Sans objet) : un clic choisit l'avis, sans ouvrir le menu. Favorable en vert, Observation en orange, Aucun, Hors mission et Sans objet en gris, À préciser en bleu (couleur non demandée, choisie pour le distinguer). Le bouton de l'avis en cours est plein, les autres au trait
+- Le menu reste en place et fait foi : les boutons le pilotent (mêmes évènements qu'un choix à la main, donc même enregistrement par Aviso) et suivent son état, y compris quand Aviso le change lui-même. Il est reconnu au texte de ses options, « Favorable » et « Observation », et non à sa position : une option ajoutée par Aviso apparaît aussi, en gris. Un menu désactivé laisse les boutons inactifs
+- **Statistiques** : les clics sur ces boutons sont comptés sous « Boutons d'avis », sans l'avis choisi (une donnée d'Aviso). Même nature d'usage qu'un clic sur une icône : PRIVACY.md ne change pas
+- ⚠️ **`Code.gs` est à recopier dans l'éditeur Apps Script et à enregistrer** (libellé et regroupement du nouveau compteur dans la synthèse). Aucun déploiement en « Nouvelle version » n'est nécessaire, l'API n'a pas changé
+
 ## v2.27.1 — 2026-11-22
 - **Correctif : le clic sur le titre de l'affaire copie bien le numéro** (#87). Dans Aviso, le titre est lui-même un lien ; le clic était pris pour un clic sur un lien du titre, et rien ne se passait. Seul un lien contenu dans le titre laisse désormais le clic passer, et le titre n'ouvre plus rien au clic
 

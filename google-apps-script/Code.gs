@@ -645,7 +645,8 @@ const STATS_REGROUPEMENTS = [
   ['Lien SharePoint', ['lien_sharepoint']],
   ['Lien sitesecurite', ['aviso_sitesecurite']],
   ['Lien Légifrance', ['aviso_legifrance']],
-  ['Lien Explorateur', ['lien_explorateur']]
+  ['Lien Explorateur', ['lien_explorateur']],
+  ['Boutons d\'avis', ['aviso_avis']]
 ];
 const STATS_COLONNES_FIXES = ['Ref_User', 'Date', 'Version', 'Snippets personnels', 'Articles DatAviso'];
 const STATS_CONSERVATION_MOIS = 24;
@@ -663,6 +664,7 @@ const STATS_LIBELLES = {
   aviso_legifrance: 'Aviso : lien Légifrance',
   aviso_corbeille: 'Aviso : corbeille',
   aviso_annuler: 'Aviso : annuler l\'effacement',
+  aviso_avis: 'Aviso : bouton d\'avis (Favorable, Observation…)',
   lien_sgo: 'Lien SGO',
   lien_sharepoint: 'Lien SharePoint',
   lien_explorateur: 'Lien Explorateur',
