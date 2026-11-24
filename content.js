@@ -12,6 +12,8 @@ let EXPANSION_DELAY_MS = 1000;
 // Liens SGO / SharePoint / Explorateur posés sur les affaires dans Aviso, un réglage par lien
 // (Paramètres avancés). Actifs par défaut : un réglage absent vaut "activé".
 let LIENS_AFFAIRE = { sgo: true, sharepoint: true, explorateur: true };
+// Boutons d'avis au-dessus du menu déroulant d'Aviso (Paramètres avancés). Actifs par défaut.
+let BOUTONS_AVIS = true;
 let pendingTimeoutId = null;
 
 // Déclarés avant loadSnippets() car référencés depuis son callback : chrome.storage est
@@ -28,6 +30,8 @@ const AVISO_EDIT_CLASS = 'snippet-expander-aviso-edit';
 const AVISO_CLEAR_CLASS = 'snippet-expander-aviso-clear';
 // Groupe de liens SGO / SharePoint / Explorateur d'une affaire (liste Plans Affaires, barre bleue).
 const AVISO_LIENS_CLASS = 'snippet-expander-liens-affaire';
+// Rangée de boutons d'avis, au-dessus du menu déroulant d'avis (hors de AVISO_ORDER).
+const AVISO_AVIS_CLASS = 'snippet-expander-aviso-avis';
 
 // Ordre d'affichage des icônes, de gauche à droite. Le "+" et l'icône jaune occupent la même
 // place et ne coexistent jamais : le "+" n'apparaît que sur une ligne sans snippet local.
@@ -58,23 +62,31 @@ function loadSnippets() {
     if (isAvisoSite()) scheduleAvisoScan();
   });
 }
-// Applique les réglages ; renvoie true si les liens d'affaire ont changé, pour que l'appelant
-// retire et repose ceux déjà affichés.
+// Applique les réglages ; renvoie les classes des éléments Aviso dont le réglage a changé, pour
+// que l'appelant retire ceux déjà affichés (le scan suivant repose ce qui reste activé).
 function appliquerReglages(s) {
   EXPANSION_DELAY_MS = Number.isFinite(s.expansionDelayMs) ? s.expansionDelayMs : 1000;
+  const aRetirer = [];
   const avant = JSON.stringify(LIENS_AFFAIRE);
   LIENS_AFFAIRE = {
     sgo: s.lienSgo !== false,
     sharepoint: s.lienSharepoint !== false,
     explorateur: s.lienExplorateur !== false
   };
-  return JSON.stringify(LIENS_AFFAIRE) !== avant;
+  if (JSON.stringify(LIENS_AFFAIRE) !== avant) aRetirer.push(AVISO_LIENS_CLASS);
+  const boutonsAvis = s.boutonsAvis !== false;
+  if (boutonsAvis !== BOUTONS_AVIS) aRetirer.push(AVISO_AVIS_CLASS);
+  BOUTONS_AVIS = boutonsAvis;
+  return aRetirer;
+}
+
+function reglagesModifies(s) {
+  const aRetirer = appliquerReglages(s || {});
+  if (aRetirer.length && isAvisoSite()) retirerIconesAviso(aRetirer);
 }
 
 function loadSettings() {
-  chrome.storage.sync.get(['syncSettings'], (res) => {
-    if (appliquerReglages(res.syncSettings || {}) && isAvisoSite()) retirerIconesAviso([AVISO_LIENS_CLASS]);
-  });
+  chrome.storage.sync.get(['syncSettings'], (res) => reglagesModifies(res.syncSettings));
 }
 loadSnippets();
 loadSettings();
@@ -105,9 +117,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
     if (isAvisoSite()) retirerIconesAviso([AVISO_IMPORT_CLASS]);
   }
   if (area === 'sync' && changes.syncSettings) {
-    if (appliquerReglages(changes.syncSettings.newValue || {}) && isAvisoSite()) {
-      retirerIconesAviso([AVISO_LIENS_CLASS]);
-    }
+    reglagesModifies(changes.syncSettings.newValue);
   }
 });
 
@@ -933,7 +943,6 @@ function insertAvisoClearButton(container, dispoCell) {
 // texte de ses options, comparé souplement (cleAvis) : Aviso écrit « Observations » au pluriel
 // et « [Aucun] » entre crochets. La v2.28.0 attendait « Observation » à l'identique et ne
 // reconnaissait aucun menu.
-const AVISO_AVIS_CLASS = 'snippet-expander-aviso-avis';
 const AVIS_NOM_RE = /\[avis_id\]$/;
 const AVIS_REQUIS = ['favorable', 'observation'];
 // Couleur par avis (texte d'option normalisé). Un avis absent d'ici s'affiche en gris : une
@@ -1051,6 +1060,7 @@ function insertAvisoBoutonsAvis(select) {
 }
 
 function scanSelecteursAvis() {
+  if (!BOUTONS_AVIS) return;
   document.querySelectorAll('select').forEach(select => {
     if (estSelecteurAvis(select)) insertAvisoBoutonsAvis(select);
   });
