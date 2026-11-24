@@ -139,6 +139,11 @@ Les icônes s'insèrent dans la cellule « Dispositions réalisées », dans l'o
   `'menu'` (menu d'origine, aucun bouton) — jamais de menu masqué sans boutons. Les anciennes clés
   `boutonsAvis` / `masquerMenusAvis` (v2.29–2.31) ne servent plus qu'à reprendre un ancien
   réglage. Un menu masqué porte `data-dataviso-menu-masque`, seul critère pour le réafficher.
+  Écran étroit (`ajusterLiensRemarques`) : si un bouton de la rangée recouvre `#open_remarques_pa`
+  ou `#open_clausier` (ids répétés à chaque ligne : toujours chercher dans la cellule), ces liens
+  passent après le bouton « Descendre l'avis » et reviennent quand la place le permet. Une
+  cellule n'est réexaminée que si sa largeur a changé : le déplacement relance le scan, et sans
+  cette garde l'aller-retour boucle.
 - L'intégration est toujours active sur Aviso (le réglage « Intégration Aviso » a été retiré en
   v2.18.0) et sans effet ailleurs (`isAvisoSite`).
 

@@ -1,5 +1,10 @@
 # Changelog — DatAviso
 
+## v2.32.1 — 2026-11-24
+- **Correctif : sur un écran étroit, les boutons d'avis ne recouvrent plus « Choix du Plan d'affaire » et « Clausier »** (#94). Quand la rangée de boutons atteint ces deux liens de la cellule Remarques, ils descendent à la ligne du dessous, à droite du bouton « Descendre l'avis ». Ils reprennent leur place dès que la fenêtre est assez large, ou quand le menu d'origine est rétabli dans les Paramètres
+- Les boutons d'avis gardent leur largeur au lieu de se comprimer, ce qui faisait déborder leur texte hors de leur cadre
+- Sans bouton « Descendre l'avis » sur la ligne, rien n'est déplacé
+
 ## v2.32.0 — 2026-11-24
 - **Boutons d'avis : un choix exclusif au lieu de deux cases** (#94). Paramètres avancés > Boutons d'avis propose désormais deux options, dont une seule est cochée : « Remplacer le menu déroulant par des boutons » (**par défaut**) ou « Utiliser le menu déroulant d'origine (sans bouton) ». L'état intermédiaire, boutons et menu affichés ensemble, disparaît
 - **Changement visible pour tous** : par défaut, les menus d'avis et de conformité sont désormais **masqués** sous leurs boutons. Le menu reste dans la page, avec sa valeur, et Aviso enregistre l'avis comme avant ; le choix « menu d'origine » le fait réapparaître aussitôt, sans recharger Aviso

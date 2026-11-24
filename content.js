@@ -93,7 +93,10 @@ function reglagesModifies(s) {
   const aRetirer = appliquerReglages(s || {});
   if (!aRetirer.length || !isAvisoSite()) return;
   // Les menus masqués réapparaissent d'abord ; le scan qui suit remasque ceux qui doivent l'être.
-  if (aRetirer.includes(AVISO_AVIS_CLASS)) reafficherMenusAvis();
+  if (aRetirer.includes(AVISO_AVIS_CLASS)) {
+    reafficherMenusAvis();
+    remettreTousLiensRemarques();
+  }
   retirerIconesAviso(aRetirer);
 }
 
@@ -1066,7 +1069,7 @@ function insertAvisoBoutonsAvis(select, famille) {
     btn.type = 'button';
     btn.textContent = AVIS_ABREGES[cleAvis(libelle)] || libelle;
     btn.title = `Avis : ${libelle}`;
-    btn.style.cssText = 'all:unset;cursor:pointer;box-sizing:border-box;padding:1px 5px;'
+    btn.style.cssText = 'all:unset;cursor:pointer;box-sizing:border-box;padding:1px 5px;flex:none;'
       + 'border-radius:10px;font:600 11px/16px Arial,sans-serif;white-space:nowrap;'
       + `border:1px solid ${couleur};`;
     btn.addEventListener('click', (e) => {
@@ -1109,6 +1112,71 @@ function scanSelecteursAvis() {
   document.querySelectorAll('select').forEach(select => {
     const famille = familleMenuAvis(select);
     if (famille) insertAvisoBoutonsAvis(select, famille);
+  });
+  ajusterLiensRemarques();
+}
+
+// Sur un écran étroit, la rangée de boutons d'avis (sur une ligne) recouvre les deux liens que
+// la cellule Remarques place à sa droite, « Choix du Plan d'affaire » et « Clausier ». Ces deux
+// liens descendent alors à la ligne du dessous, à droite du bouton « Descendre l'avis », et
+// reprennent leur place quand la cellule redevient assez large ou que les boutons sont retirés.
+// Déplacer un élément relance le scan (MutationObserver) : une cellule n'est donc réexaminée que
+// si sa largeur a changé depuis le dernier déplacement, faute de quoi l'aller-retour bouclerait.
+const LIENS_REMARQUES_SEL = '#open_remarques_pa, #open_clausier';
+const liensDeplaces = new Map(); // cellule td.remarques -> { largeur, liens: [{ el, parent, suivant }] }
+
+function boutonDescendreAvis(cellule) {
+  return [...cellule.querySelectorAll('button, a')].find(el =>
+    /descendre l.avis/i.test(`${el.title || ''} ${el.getAttribute('aria-label') || ''} ${el.textContent}`));
+}
+
+function seChevauchent(a, b) {
+  return a.width > 0 && b.width > 0 &&
+    a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+}
+
+function remettreLiensRemarques(cellule) {
+  const etat = liensDeplaces.get(cellule);
+  if (!etat) return;
+  etat.liens.forEach(({ el, parent, suivant }) => {
+    el.style.marginLeft = '';
+    if (parent.isConnected) parent.insertBefore(el, suivant && suivant.parentNode === parent ? suivant : null);
+  });
+  liensDeplaces.delete(cellule);
+}
+
+function remettreTousLiensRemarques() {
+  [...liensDeplaces.keys()].forEach(remettreLiensRemarques);
+}
+
+function ajusterLiensRemarques() {
+  // Cellules disparues (rechargement AJAX) : on oublie leur état.
+  [...liensDeplaces.keys()].forEach(c => { if (!c.isConnected) liensDeplaces.delete(c); });
+
+  document.querySelectorAll(`td.remarques .${AVISO_AVIS_CLASS}`).forEach(rangee => {
+    const cellule = rangee.closest('td.remarques');
+    const largeur = cellule.clientWidth;
+    const etat = liensDeplaces.get(cellule);
+    if (etat) {
+      if (largeur <= etat.largeur) return; // rien n'a changé : on n'y touche pas
+      remettreLiensRemarques(cellule);     // plus large : on réessaie à leur place d'origine
+    }
+    const liens = [...cellule.querySelectorAll(LIENS_REMARQUES_SEL)];
+    const descendre = boutonDescendreAvis(cellule);
+    if (!liens.length || !descendre) return;
+    // Les boutons débordent de la rangée quand la cellule est étroite : c'est leur étendue qui
+    // compte, pas le cadre de la rangée, borné à la largeur de son conteneur.
+    const zones = [...rangee.children].map(b => b.getBoundingClientRect());
+    if (!liens.some(l => { const r = l.getBoundingClientRect(); return zones.some(z => seChevauchent(z, r)); })) return;
+
+    const souvenirs = liens.map(el => ({ el, parent: el.parentNode, suivant: el.nextSibling }));
+    let precedent = descendre;
+    liens.forEach(el => {
+      el.style.marginLeft = '4px';
+      precedent.insertAdjacentElement('afterend', el);
+      precedent = el;
+    });
+    liensDeplaces.set(cellule, { largeur, liens: souvenirs });
   });
 }
 
@@ -1473,5 +1541,7 @@ if (isAvisoSite()) {
   // Les lignes se chargent/déplient dynamiquement (boutons d'expansion, AJAX) : on réagit à
   // toute modification du DOM plutôt qu'à un seul passage au chargement de la page.
   new MutationObserver(scheduleAvisoScan).observe(document.body, { childList: true, subtree: true });
+  // La place des liens de la cellule Remarques dépend de la largeur de la fenêtre.
+  window.addEventListener('resize', scheduleAvisoScan);
   scheduleAvisoScan();
 }
