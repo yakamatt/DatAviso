@@ -537,9 +537,16 @@ document.getElementById('sauvegarde-clausier').addEventListener('change', (e) =>
 });
 
 // Décocher efface aussi les compteurs pas encore envoyés : ils ne partiront jamais.
+// Seule la réactivation est comptée, une fois le réglage enregistré : le service worker ignore
+// tout compteur tant que les statistiques sont désactivées. La désactivation ne l'est jamais —
+// l'utilisateur vient de refuser d'être compté, et ses compteurs en attente sont effacés.
 document.getElementById('statistiques-utilisation').addEventListener('change', (e) => {
-  updateSyncSettings({ statistiquesUtilisation: e.target.checked });
-  if (!e.target.checked) chrome.storage.local.remove(['statsJours', 'statsEnvoyes']);
+  if (e.target.checked) {
+    updateSyncSettings({ statistiquesUtilisation: true }, () => compterUsage('reglage_statistiques_on'));
+  } else {
+    updateSyncSettings({ statistiquesUtilisation: false });
+    chrome.storage.local.remove(['statsJours', 'statsEnvoyes']);
+  }
 });
 
 // Liens vers l'affaire (SGO, SharePoint, Explorateur) et boutons d'avis : content.js écoute
@@ -548,6 +555,18 @@ document.getElementById('statistiques-utilisation').addEventListener('change', (
   ['boutons-avis', 'boutonsAvis']]
   .forEach(([id, cle]) => {
     document.getElementById(id).addEventListener('change', (e) => updateSyncSettings({ [cle]: e.target.checked }));
+  });
+
+// Statistiques des cases de réglage : chaque sens a sa clé (…_off, …_on, voir STATS_CLES) —
+// combien d'utilisateurs retirent une fonction est ce qui dit si elle gêne. Seul le sens part.
+// Les statistiques elles-mêmes sont à part, plus haut.
+[['sauvegarde-clausier', 'reglage_sauvegarde'], ['lien-sgo', 'reglage_lien_sgo'],
+  ['lien-sharepoint', 'reglage_lien_sharepoint'], ['lien-explorateur', 'reglage_lien_explorateur'],
+  ['boutons-avis', 'reglage_boutons_avis']]
+  .forEach(([id, base]) => {
+    document.getElementById(id).addEventListener('change', (e) => {
+      compterUsage(base + (e.target.checked ? '_on' : '_off'));
+    });
   });
 
 document.getElementById('expansion-delay').addEventListener('change', (e) => {

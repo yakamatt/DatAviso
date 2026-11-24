@@ -1,5 +1,10 @@
 # Changelog — DatAviso
 
+## v2.29.1 — 2026-11-24
+- **Statistiques : toutes les cases des Paramètres avancés sont comptées**, dans chaque sens et séparément (« … désactivé », « … réactivé ») : sauvegarde anonyme, liens SGO, SharePoint et Explorateur, boutons d'avis. Les statistiques elles-mêmes ne comptent que leur réactivation : leur désactivation est un refus d'être compté, et efface déjà les compteurs en attente
+- **La case « Afficher les boutons d'avis »** (#94) est comptée, dans les deux sens et séparément (« boutons d'avis désactivés », « réactivés ») : le nombre d'utilisateurs qui les retirent dit s'ils gênent. Seul le sens du changement part, comme pour tout compteur : même nature d'usage qu'un clic, PRIVACY.md ne change pas. Les clics sur les boutons eux-mêmes sont comptés depuis la v2.28.0
+- ⚠️ **`Code.gs` est à recopier dans l'éditeur Apps Script et à enregistrer** (libellés des nouveaux compteurs dans la synthèse). Aucun déploiement en « Nouvelle version » n'est nécessaire, l'API n'a pas changé
+
 ## v2.29.0 — 2026-11-24
 - **Les boutons d'avis se désactivent** (#94) : Paramètres avancés > Boutons d'avis, case « Afficher les boutons d'avis », cochée par défaut. Le changement s'applique aussitôt sur les onglets Aviso ouverts, sans les recharger ; le menu déroulant d'Aviso reste utilisable dans tous les cas
 

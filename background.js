@@ -248,6 +248,12 @@ const STATS_CLES = [
   'clavier_commun', 'clavier_perso', 'clavier_hors_aviso',
   'aviso_commun', 'aviso_perso', 'aviso_crayon', 'aviso_plus', 'aviso_dataviso',
   'aviso_sitesecurite', 'aviso_legifrance', 'aviso_corbeille', 'aviso_annuler', 'aviso_avis',
+  'reglage_boutons_avis_off', 'reglage_boutons_avis_on',
+  'reglage_sauvegarde_off', 'reglage_sauvegarde_on',
+  'reglage_lien_sgo_off', 'reglage_lien_sgo_on',
+  'reglage_lien_sharepoint_off', 'reglage_lien_sharepoint_on',
+  'reglage_lien_explorateur_off', 'reglage_lien_explorateur_on',
+  'reglage_statistiques_on',
   'lien_sgo', 'lien_sharepoint', 'lien_explorateur',
   'import_dataviso', 'clausier_import', 'clausier_export',
   'popup', 'parametres', 'tutoriel'
