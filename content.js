@@ -935,7 +935,7 @@ function insertAvisoClearButton(container, dispoCell) {
   container.insertBefore(btn, container.firstChild);
 }
 
-// ---------- Boutons d'avis : Aucun, Favorable, Observation, Hors mission… ----------
+// ---------- Boutons d'avis et de conformité : Favorable, Observation, Conforme… ----------
 // Au-dessus du menu déroulant d'avis d'Aviso, une rangée de boutons colorés : un clic choisit
 // l'avis, au lieu d'ouvrir le menu puis de viser la bonne ligne (#94). Le menu reste en place et
 // fait foi : les boutons ne font que le piloter, et suivent son état.
@@ -944,12 +944,20 @@ function insertAvisoClearButton(container, dispoCell) {
 // et « [Aucun] » entre crochets. La v2.28.0 attendait « Observation » à l'identique et ne
 // reconnaissait aucun menu.
 const AVIS_NOM_RE = /\[avis_id\]$/;
-const AVIS_REQUIS = ['favorable', 'observation'];
+// Deux familles de menus portent des boutons, reconnues chacune à deux options qui lui sont
+// propres : l'avis (Favorable, Observations…) et la conformité (Conforme, Non conforme…). Chacune
+// a son compteur, pour savoir laquelle sert.
+const MENUS_AVIS = [
+  { requis: ['favorable', 'observation'], statistique: 'aviso_avis' },
+  { requis: ['conforme', 'non conforme'], statistique: 'aviso_conformite' }
+];
 // Couleur par avis (texte d'option normalisé). Un avis absent d'ici s'affiche en gris : une
 // option ajoutée par Aviso apparaît donc quand même, sans couleur trompeuse.
 const AVIS_COULEURS = {
   'favorable': '#2e7d32',
   'observation': '#e67e22',
+  'conforme': '#2e7d32',
+  'non conforme': '#e67e22',
   'a preciser': '#1f6fb2',
   'aucun': '#6b6b6b',
   'sans objet': '#6b6b6b',
@@ -963,6 +971,8 @@ const AVIS_ABREGES = {
   'aucun': 'Aucun',
   'favorable': 'Fav.',
   'observation': 'Obs.',
+  'conforme': 'Conf.',
+  'non conforme': 'Non conf.',
   'hors mission': 'H.M.',
   'a preciser': 'À préc.',
   'sans objet': 'S.O.'
@@ -983,10 +993,13 @@ function libelleAvis(texte) {
   return texte.trim().replace(/^\[(.*)\]$/, '$1').trim();
 }
 
-function estSelecteurAvis(select) {
-  if (AVIS_NOM_RE.test(select.name || '')) return true;
+// Famille du menu (MENUS_AVIS), ou null s'il n'en est pas un. Un menu nommé `[avis_id]` dont les
+// options ne disent pas la famille est un menu d'avis.
+function familleMenuAvis(select) {
   const cles = [...select.options].map(o => cleAvis(o.textContent));
-  return AVIS_REQUIS.every(r => cles.includes(r));
+  const famille = MENUS_AVIS.find(m => m.requis.every(r => cles.includes(r)));
+  if (famille) return famille;
+  return AVIS_NOM_RE.test(select.name || '') ? MENUS_AVIS[0] : null;
 }
 
 // Choisit l'option comme le ferait l'utilisateur dans le menu : 'input' puis 'change', qui
@@ -999,7 +1012,7 @@ function choisirAvis(select, option) {
   return true;
 }
 
-function insertAvisoBoutonsAvis(select) {
+function insertAvisoBoutonsAvis(select, famille) {
   const existante = rangeesAvis.get(select);
   if (existante && existante.isConnected) {
     existante.majAvis();
@@ -1029,7 +1042,7 @@ function insertAvisoBoutonsAvis(select) {
       e.preventDefault();
       e.stopPropagation();
       if (select.disabled) return;
-      if (choisirAvis(select, option)) compterUsage('aviso_avis');
+      if (choisirAvis(select, option)) compterUsage(famille.statistique);
       majAvis();
     });
     boutons.push({ btn, option, couleur });
@@ -1062,7 +1075,8 @@ function insertAvisoBoutonsAvis(select) {
 function scanSelecteursAvis() {
   if (!BOUTONS_AVIS) return;
   document.querySelectorAll('select').forEach(select => {
-    if (estSelecteurAvis(select)) insertAvisoBoutonsAvis(select);
+    const famille = familleMenuAvis(select);
+    if (famille) insertAvisoBoutonsAvis(select, famille);
   });
 }
 

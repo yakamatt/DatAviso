@@ -646,7 +646,7 @@ const STATS_REGROUPEMENTS = [
   ['Lien sitesecurite', ['aviso_sitesecurite']],
   ['Lien Légifrance', ['aviso_legifrance']],
   ['Lien Explorateur', ['lien_explorateur']],
-  ['Boutons d\'avis', ['aviso_avis']]
+  ['Boutons d\'avis', ['aviso_avis', 'aviso_conformite']]
 ];
 const STATS_COLONNES_FIXES = ['Ref_User', 'Date', 'Version', 'Snippets personnels', 'Articles DatAviso'];
 const STATS_CONSERVATION_MOIS = 24;
@@ -665,6 +665,7 @@ const STATS_LIBELLES = {
   aviso_corbeille: 'Aviso : corbeille',
   aviso_annuler: 'Aviso : annuler l\'effacement',
   aviso_avis: 'Aviso : bouton d\'avis (Favorable, Observation…)',
+  aviso_conformite: 'Aviso : bouton de conformité (Conforme, Non conforme…)',
   reglage_boutons_avis_off: 'Paramètres : boutons d\'avis désactivés',
   reglage_boutons_avis_on: 'Paramètres : boutons d\'avis réactivés',
   reglage_sauvegarde_off: 'Paramètres : sauvegarde anonyme désactivée',

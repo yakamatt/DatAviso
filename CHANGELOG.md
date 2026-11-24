@@ -1,5 +1,11 @@
 # Changelog — DatAviso
 
+## v2.30.0 — 2026-11-24
+- **Boutons colorés aussi sur le menu de conformité** (#94). Les menus « Aucun, Conforme, Non conforme, Hors mission, Sans objet » reçoivent la même rangée de boutons que le menu d'avis, sur une ligne : Conf. en vert, Non conf. en orange, Aucun, H.M. et S.O. en gris, libellé complet au survol. Le menu est reconnu à ses options « Conforme » et « Non conforme », et le menu d'avis reste reconnu comme avant
+- La case « Afficher les boutons d'avis » des Paramètres avancés couvre les deux menus
+- **Statistiques** : les clics sur les boutons de conformité ont leur compteur, « bouton de conformité », regroupé avec les boutons d'avis en tête de synthèse. Seul l'usage part, jamais la valeur choisie : PRIVACY.md ne change pas
+- ⚠️ **`Code.gs` est à recopier dans l'éditeur Apps Script et à enregistrer** (libellé et regroupement du nouveau compteur). Aucun déploiement en « Nouvelle version » n'est nécessaire
+
 ## v2.29.1 — 2026-11-24
 - **Statistiques : toutes les cases des Paramètres avancés sont comptées**, dans chaque sens et séparément (« … désactivé », « … réactivé ») : sauvegarde anonyme, liens SGO, SharePoint et Explorateur, boutons d'avis. Les statistiques elles-mêmes ne comptent que leur réactivation : leur désactivation est un refus d'être compté, et efface déjà les compteurs en attente
 - **La case « Afficher les boutons d'avis »** (#94) est comptée, dans les deux sens et séparément (« boutons d'avis désactivés », « réactivés ») : le nombre d'utilisateurs qui les retirent dit s'ils gênent. Seul le sens du changement part, comme pour tout compteur : même nature d'usage qu'un clic, PRIVACY.md ne change pas. Les clics sur les boutons eux-mêmes sont comptés depuis la v2.28.0
