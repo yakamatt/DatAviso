@@ -995,6 +995,21 @@ const AVIS_ABREGES = {
 // Les rangées déjà posées, pour les remettre à jour au scan : Aviso peut changer l'avis sans
 // émettre d'évènement (rechargement AJAX de la valeur), que l'écoute de 'change' ne verrait pas.
 const rangeesAvis = new WeakMap();
+// Les menus déjà écoutés. Un menu survit à sa rangée — reconstruite à chaque changement de
+// réglage (`retirerIconesAviso` retire les rangées, pas les menus) ou d'options — donc un
+// écouteur posé par rangée s'accumulerait sur le menu : après dix bascules du réglage, dix
+// écouteurs, dont neuf repeignant des boutons retirés de la page et les maintenant en mémoire.
+// L'écouteur unique retrouve la rangée en cours au moment de l'évènement.
+const menusEcoutes = new WeakSet();
+
+function ecouterMenuAvis(select) {
+  if (menusEcoutes.has(select)) return;
+  menusEcoutes.add(select);
+  select.addEventListener('change', () => {
+    const rangee = rangeesAvis.get(select);
+    if (rangee && rangee.isConnected) rangee.majAvis();
+  });
+}
 
 // "[Aucun]" -> "aucun", "Observations" -> "observation", "A préciser" -> "a preciser" : sans
 // accents, ponctuation ni pluriel final, pour comparer quelle que soit l'écriture d'Aviso.
@@ -1017,10 +1032,16 @@ function familleMenuAvis(select) {
   return AVIS_NOM_RE.test(select.name || '') ? MENUS_AVIS[0] : null;
 }
 
-// Choisit l'option comme le ferait l'utilisateur dans le menu : 'input' puis 'change', qui
+// Choisit l'avis comme le ferait l'utilisateur dans le menu : 'input' puis 'change', qui
 // remontent jusqu'aux écouteurs d'Aviso (jQuery compris) pour l'enregistrement.
-function choisirAvis(select, option) {
-  if (option.selected) return false;
+//
+// L'option est retrouvée par sa valeur au moment du clic, et non retenue à la pose des boutons :
+// Aviso peut remplacer les options d'un menu sans remplacer le menu lui-même, et une référence
+// gardée pointerait alors sur une option détachée — le bouton se colorait, Aviso conservait
+// l'avis précédent. Valeur inconnue : on ne touche à rien, plutôt que de vider le menu.
+function choisirAvis(select, valeur) {
+  const option = [...select.options].find(o => o.value === valeur);
+  if (!option || option.selected) return false;
   option.selected = true;
   select.dispatchEvent(new Event('input', { bubbles: true }));
   select.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1038,16 +1059,29 @@ function masquerMenuAvis(select) {
   select.style.display = 'none';
 }
 
+function demasquerMenuAvis(select) {
+  if (!select.hasAttribute(AVIS_MENU_MASQUE_ATTR)) return;
+  select.removeAttribute(AVIS_MENU_MASQUE_ATTR);
+  select.style.display = '';
+}
+
 function reafficherMenusAvis() {
-  document.querySelectorAll(`select[${AVIS_MENU_MASQUE_ATTR}]`).forEach(select => {
-    select.removeAttribute(AVIS_MENU_MASQUE_ATTR);
-    select.style.display = '';
-  });
+  document.querySelectorAll(`select[${AVIS_MENU_MASQUE_ATTR}]`).forEach(demasquerMenuAvis);
+}
+
+// Ce que les boutons reflètent : la valeur et le libellé de chaque option. Une rangée posée sur
+// un autre jeu d'options est périmée — Aviso charge parfois les options par AJAX après le premier
+// scan, ou les remplace sans remplacer le menu.
+function signatureOptions(select) {
+  return [...select.options].map(o => `${o.value}\u0000${o.textContent}`).join('\u0001');
 }
 
 function insertAvisoBoutonsAvis(select, famille) {
   const existante = rangeesAvis.get(select);
-  if (existante && existante.isConnected) {
+  const signature = signatureOptions(select);
+  // La rangée en place ne vaut que pour les options sur lesquelles elle a été construite : sinon
+  // on retombe plus bas sur une reconstruction complète.
+  if (existante && existante.isConnected && existante.signatureAvis === signature) {
     existante.majAvis();
     masquerMenuAvis(select);
     return;
@@ -1065,6 +1099,7 @@ function insertAvisoBoutonsAvis(select, famille) {
     // Ligne vide ou de remplissage du menu (« -- », « --- ») : rien à choisir.
     if (!/\p{L}/u.test(libelle) || option.disabled) return;
     const couleur = AVIS_COULEURS[cleAvis(libelle)] || AVIS_COULEUR_DEFAUT;
+    const valeur = option.value;
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.textContent = AVIS_ABREGES[cleAvis(libelle)] || libelle;
@@ -1076,17 +1111,31 @@ function insertAvisoBoutonsAvis(select, famille) {
       e.preventDefault();
       e.stopPropagation();
       if (select.disabled) return;
-      if (choisirAvis(select, option)) compterUsage(famille.statistique);
+      if (choisirAvis(select, valeur)) compterUsage(famille.statistique);
       majAvis();
     });
-    boutons.push({ btn, option, couleur });
+    boutons.push({ btn, valeur, couleur });
     rangee.appendChild(btn);
   });
 
+  // Aucune option utilisable : le menu n'est pas encore rempli (Aviso les charge parfois par AJAX
+  // après le premier scan), ou il vient d'être vidé. Le masquer priverait la ligne de tout moyen
+  // de choisir l'avis, et une rangée vide, étant connectée, ne serait jamais reconstruite. On
+  // laisse donc le menu d'origine, et le scan suivant reconstruit dès que les options arrivent.
+  if (!boutons.length) {
+    if (existante) {
+      existante.remove();
+      rangeesAvis.delete(select);
+    }
+    demasquerMenuAvis(select);
+    return;
+  }
+
   // Le bouton de l'avis en cours est plein, les autres au trait : l'état se lit d'un coup d'œil.
   function majAvis() {
-    boutons.forEach(({ btn, option, couleur }) => {
-      const actif = option.selected;
+    const courant = select.value;
+    boutons.forEach(({ btn, valeur, couleur }) => {
+      const actif = valeur === courant;
       btn.style.background = actif ? couleur : '#fff';
       btn.style.color = actif ? '#fff' : couleur;
       btn.style.opacity = select.disabled ? '0.5' : '1';
@@ -1095,7 +1144,8 @@ function insertAvisoBoutonsAvis(select, famille) {
     });
   }
   rangee.majAvis = majAvis;
-  select.addEventListener('change', majAvis);
+  rangee.signatureAvis = signature;
+  ecouterMenuAvis(select);
   majAvis();
 
   // Un menu remplacé par Aviso (rechargement AJAX) peut laisser derrière lui la rangée de
@@ -1149,18 +1199,32 @@ function remettreTousLiensRemarques() {
   [...liensDeplaces.keys()].forEach(remettreLiensRemarques);
 }
 
+// Les mesures et les déplacements sont séparés en passes, et non entrelacés cellule par cellule :
+// un déplacement invalide la mise en page, et mesurer juste après force le navigateur à la
+// recalculer entièrement. Une page d'une centaine de lignes faisait donc un recalcul complet par
+// ligne, à chaque scan — sensible au redimensionnement de la fenêtre, qui relance le scan en
+// continu. Ainsi groupées, deux lectures et deux écritures suffisent pour toute la page.
 function ajusterLiensRemarques() {
   // Cellules disparues (rechargement AJAX) : on oublie leur état.
   [...liensDeplaces.keys()].forEach(c => { if (!c.isConnected) liensDeplaces.delete(c); });
 
+  // Lecture : les largeurs, avant toute écriture.
+  const candidates = [];
   document.querySelectorAll(`td.remarques .${AVISO_AVIS_CLASS}`).forEach(rangee => {
     const cellule = rangee.closest('td.remarques');
     const largeur = cellule.clientWidth;
     const etat = liensDeplaces.get(cellule);
-    if (etat) {
-      if (largeur <= etat.largeur) return; // rien n'a changé : on n'y touche pas
-      remettreLiensRemarques(cellule);     // plus large : on réessaie à leur place d'origine
-    }
+    if (etat && largeur <= etat.largeur) return; // rien n'a changé : on n'y touche pas
+    candidates.push({ rangee, cellule, largeur, aRemettre: !!etat });
+  });
+  if (!candidates.length) return;
+
+  // Écriture : plus large qu'au dernier déplacement, on réessaie à la place d'origine.
+  candidates.forEach(c => { if (c.aRemettre) remettreLiensRemarques(c.cellule); });
+
+  // Lecture : les chevauchements, une fois tous les retours faits.
+  const aDeplacer = [];
+  candidates.forEach(({ rangee, cellule, largeur }) => {
     const liens = [...cellule.querySelectorAll(LIENS_REMARQUES_SEL)];
     const descendre = boutonDescendreAvis(cellule);
     if (!liens.length || !descendre) return;
@@ -1168,7 +1232,11 @@ function ajusterLiensRemarques() {
     // compte, pas le cadre de la rangée, borné à la largeur de son conteneur.
     const zones = [...rangee.children].map(b => b.getBoundingClientRect());
     if (!liens.some(l => { const r = l.getBoundingClientRect(); return zones.some(z => seChevauchent(z, r)); })) return;
+    aDeplacer.push({ cellule, largeur, liens, descendre });
+  });
 
+  // Écriture : les déplacements.
+  aDeplacer.forEach(({ cellule, largeur, liens, descendre }) => {
     const souvenirs = liens.map(el => ({ el, parent: el.parentNode, suivant: el.nextSibling }));
     let precedent = descendre;
     liens.forEach(el => {

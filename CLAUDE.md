@@ -139,11 +139,23 @@ Les icônes s'insèrent dans la cellule « Dispositions réalisées », dans l'o
   `'menu'` (menu d'origine, aucun bouton) — jamais de menu masqué sans boutons. Les anciennes clés
   `boutonsAvis` / `masquerMenusAvis` (v2.29–2.31) ne servent plus qu'à reprendre un ancien
   réglage. Un menu masqué porte `data-dataviso-menu-masque`, seul critère pour le réafficher.
+  La règle « jamais de menu masqué sans boutons » vaut aussi pour les options : une rangée est
+  liée au jeu d'options sur lequel elle a été construite (`signatureOptions`) et reconstruite dès
+  qu'il change ; si aucune option n'est utilisable, le menu d'origine reste visible. Aviso remplit
+  parfois ces menus par AJAX après le premier scan, et masquer un menu sans bouton prive la ligne
+  de tout moyen de choisir. Un bouton retient la **valeur** de son option, jamais l'option
+  elle-même, et la retrouve au clic : les options peuvent être remplacées sans que le `<select>`
+  le soit, et une référence gardée colorait le bouton sans rien enregistrer. Le menu n'est écouté
+  qu'une fois (`ecouterMenuAvis`, `menusEcoutes`) : il survit à sa rangée, et un écouteur par
+  rangée s'y accumulerait.
   Écran étroit (`ajusterLiensRemarques`) : si un bouton de la rangée recouvre `#open_remarques_pa`
   ou `#open_clausier` (ids répétés à chaque ligne : toujours chercher dans la cellule), ces liens
   passent après le bouton « Descendre l'avis » et reviennent quand la place le permet. Une
   cellule n'est réexaminée que si sa largeur a changé : le déplacement relance le scan, et sans
-  cette garde l'aller-retour boucle.
+  cette garde l'aller-retour boucle. Mesures et déplacements restent groupés en passes (lecture,
+  écriture, lecture, écriture) et jamais entrelacés cellule par cellule : un déplacement invalide
+  la mise en page, et mesurer juste après la fait recalculer — une page de 50 lignes passe de 49
+  recalculs forcés à aucun.
 - L'intégration est toujours active sur Aviso (le réglage « Intégration Aviso » a été retiré en
   v2.18.0) et sans effet ailleurs (`isAvisoSite`).
 
