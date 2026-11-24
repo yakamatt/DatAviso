@@ -947,6 +947,17 @@ const AVIS_COULEURS = {
   'hors mission': '#6b6b6b'
 };
 const AVIS_COULEUR_DEFAUT = '#6b6b6b';
+// Libellés abrégés : la colonne Remarques est étroite, les six libellés entiers y tenaient sur
+// trois lignes. Abrégés, ils tiennent sur une seule ; le libellé entier reste dans l'infobulle.
+// Un avis absent d'ici garde le libellé d'Aviso.
+const AVIS_ABREGES = {
+  'aucun': 'Aucun',
+  'favorable': 'Fav.',
+  'observation': 'Obs.',
+  'hors mission': 'H.M.',
+  'a preciser': 'À préc.',
+  'sans objet': 'S.O.'
+};
 // Les rangées déjà posées, pour les remettre à jour au scan : Aviso peut changer l'avis sans
 // émettre d'évènement (rechargement AJAX de la valeur), que l'écoute de 'change' ne verrait pas.
 const rangeesAvis = new WeakMap();
@@ -990,7 +1001,7 @@ function insertAvisoBoutonsAvis(select) {
   rangee.className = AVISO_AVIS_CLASS;
   rangee.setAttribute('role', 'group');
   rangee.setAttribute('aria-label', "Choisir l'avis");
-  rangee.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin:0 0 4px 0;';
+  rangee.style.cssText = 'display:flex;flex-wrap:nowrap;gap:3px;margin:0 0 4px 0;';
 
   const boutons = [];
   [...select.options].forEach(option => {
@@ -1000,9 +1011,9 @@ function insertAvisoBoutonsAvis(select) {
     const couleur = AVIS_COULEURS[cleAvis(libelle)] || AVIS_COULEUR_DEFAUT;
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.textContent = libelle;
+    btn.textContent = AVIS_ABREGES[cleAvis(libelle)] || libelle;
     btn.title = `Avis : ${libelle}`;
-    btn.style.cssText = 'all:unset;cursor:pointer;box-sizing:border-box;padding:1px 7px;'
+    btn.style.cssText = 'all:unset;cursor:pointer;box-sizing:border-box;padding:1px 5px;'
       + 'border-radius:10px;font:600 11px/16px Arial,sans-serif;white-space:nowrap;'
       + `border:1px solid ${couleur};`;
     btn.addEventListener('click', (e) => {

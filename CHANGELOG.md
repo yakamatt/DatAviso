@@ -2,7 +2,7 @@
 
 ## v2.28.1 — 2026-11-24
 - **Correctif : les boutons d'avis s'affichent sur Aviso** (#94). Ils n'apparaissaient sur aucune ligne : la v2.28.0 reconnaissait le menu à deux options écrites exactement « Favorable » et « Observation », alors qu'Aviso écrit « Observations », au pluriel. Le menu est désormais reconnu à son nom (`verification[…][avis_id]`), relevé sur Aviso, et à défaut à ses options, comparées sans accents, ponctuation ni pluriel final
-- Le bouton « Aucun » perd les crochets de l'option « [Aucun] » ; les autres libellés restent ceux d'Aviso
+- **Libellés abrégés, sur une seule ligne** : Aucun, Fav., Obs., H.M., À préc., S.O. Entiers, les six boutons tenaient sur trois lignes dans la colonne Remarques, étroite. Le libellé complet reste dans l'infobulle, et un avis inconnu garde celui d'Aviso
 
 ## v2.28.0 — 2026-11-24
 - **Boutons d'avis au-dessus du menu déroulant d'Aviso** (#94). Une rangée de boutons colorés reprend les choix du menu (Aucun, Favorable, Observation, Hors mission, À préciser, Sans objet) : un clic choisit l'avis, sans ouvrir le menu. Favorable en vert, Observation en orange, Aucun, Hors mission et Sans objet en gris, À préciser en bleu (couleur non demandée, choisie pour le distinguer). Le bouton de l'avis en cours est plein, les autres au trait
