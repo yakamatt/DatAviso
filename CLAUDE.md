@@ -148,6 +148,10 @@ Les icônes s'insèrent dans la cellule « Dispositions réalisées », dans l'o
   le soit, et une référence gardée colorait le bouton sans rien enregistrer. Le menu n'est écouté
   qu'une fois (`ecouterMenuAvis`, `menusEcoutes`) : il survit à sa rangée, et un écouteur par
   rangée s'y accumulerait.
+  Couleur et abrégé d'un avis vont par paire dans `AVIS_STYLES` ; un avis absent s'affiche en gris
+  avec le libellé d'Aviso. La famille d'un menu est retenue par menu (`famillesMenus`), la
+  signature de ses options pour clé et non le menu seul — sinon un menu encore vide resterait
+  classé « pas un menu d'avis » pour toujours.
   Écran étroit (`ajusterLiensRemarques`) : si un bouton de la rangée recouvre `#open_remarques_pa`
   ou `#open_clausier` (ids répétés à chaque ligne : toujours chercher dans la cellule), ces liens
   passent après le bouton « Descendre l'avis » et reviennent quand la place le permet. Une
