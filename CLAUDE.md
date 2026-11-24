@@ -134,9 +134,11 @@ Les icônes s'insèrent dans la cellule « Dispositions réalisées », dans l'o
   `[Aucun]`, `Favorable` (1), `Observations` (2, **au pluriel** — une comparaison exacte à
   « Observation » a laissé la v2.28.0 sans aucun bouton), `Hors mission` (5), `A préciser` (28),
   `Sans Objet` (29). Familles dans `MENUS_AVIS`, reconnues à deux options propres comparées par
-  `cleAvis` (sans accents, ponctuation ni pluriel). Réglages `boutonsAvis` (actif par défaut) et
-  `masquerMenusAvis` (inactif par défaut, sans effet sans les boutons) : un menu masqué porte
-  `data-dataviso-menu-masque`, seul critère pour le réafficher.
+  `cleAvis` (sans accents, ponctuation ni pluriel). Réglage unique `modeAvis` (`modeAvis()`, même
+  lecture dans content.js et options.js) : `'boutons'` par défaut (rangée posée, menu masqué) ou
+  `'menu'` (menu d'origine, aucun bouton) — jamais de menu masqué sans boutons. Les anciennes clés
+  `boutonsAvis` / `masquerMenusAvis` (v2.29–2.31) ne servent plus qu'à reprendre un ancien
+  réglage. Un menu masqué porte `data-dataviso-menu-masque`, seul critère pour le réafficher.
 - L'intégration est toujours active sur Aviso (le réglage « Intégration Aviso » a été retiré en
   v2.18.0) et sans effet ailleurs (`isAvisoSite`).
 
@@ -227,7 +229,8 @@ et **Version cible**, qui groupe ce qui part dans un même envoi.
   - le rappel « recopier `Code.gs` et enregistrer » dans le CHANGELOG et au « push gh » ;
   - PRIVACY.md si la nature des données comptées change.
   Une case de réglage se compte dans ses deux sens, en deux clés (`…_off`, `…_on`), en
-  l'ajoutant au tableau des cases d'options.js. Exception : la case des statistiques ne compte
+  l'ajoutant au tableau des cases d'options.js ; un choix exclusif (boutons radio), une clé par
+  option (`reglage_mode_avis_boutons`, `…_menu`). Exception : la case des statistiques ne compte
   que sa réactivation (désactiver, c'est refuser d'être compté).
 - `.DS_Store` et `dist/` sont ignorés. Ne jamais les committer.
 - Code et commentaires en français, comme l'existant.

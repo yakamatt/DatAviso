@@ -1,5 +1,12 @@
 # Changelog — DatAviso
 
+## v2.32.0 — 2026-11-24
+- **Boutons d'avis : un choix exclusif au lieu de deux cases** (#94). Paramètres avancés > Boutons d'avis propose désormais deux options, dont une seule est cochée : « Remplacer le menu déroulant par des boutons » (**par défaut**) ou « Utiliser le menu déroulant d'origine (sans bouton) ». L'état intermédiaire, boutons et menu affichés ensemble, disparaît
+- **Changement visible pour tous** : par défaut, les menus d'avis et de conformité sont désormais **masqués** sous leurs boutons. Le menu reste dans la page, avec sa valeur, et Aviso enregistre l'avis comme avant ; le choix « menu d'origine » le fait réapparaître aussitôt, sans recharger Aviso
+- Les réglages précédents sont repris : qui avait décoché « Afficher les boutons d'avis » se retrouve sur « menu d'origine ». Le réglage est désormais une seule clé, `modeAvis`
+- **Statistiques** : chaque choix a son compteur (« avis par boutons », « avis par menu d'origine »), qui remplacent ceux des deux anciennes cases (leurs libellés restent dans `Code.gs` pour les lignes déjà reçues)
+- ⚠️ **`Code.gs` est à recopier dans l'éditeur Apps Script et à enregistrer** (libellés des deux compteurs). Aucun déploiement en « Nouvelle version » n'est nécessaire
+
 ## v2.31.0 — 2026-11-24
 - **Option pour masquer les menus déroulants doublés par les boutons** (#94) : Paramètres avancés > Boutons d'avis, case « Masquer les menus déroulants remplacés par les boutons », **décochée par défaut**. Elle masque les menus d'avis et de conformité qui portent une rangée de boutons, et eux seuls
 - Le menu masqué reste dans la page avec sa valeur : un bouton le pilote et Aviso l'enregistre comme avant. Il réapparaît aussitôt, sans recharger Aviso, si la case est décochée ou si les boutons sont désactivés : un menu n'est jamais masqué sans remplaçant. Sans les boutons, la case est grisée
