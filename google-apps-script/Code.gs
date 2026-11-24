@@ -665,6 +665,8 @@ const STATS_LIBELLES = {
   aviso_corbeille: 'Aviso : corbeille',
   aviso_annuler: 'Aviso : annuler l\'effacement',
   aviso_avis: 'Aviso : bouton d\'avis (Favorable, Observation…)',
+  reglage_boutons_avis_off: 'Paramètres : boutons d\'avis désactivés',
+  reglage_boutons_avis_on: 'Paramètres : boutons d\'avis réactivés',
   lien_sgo: 'Lien SGO',
   lien_sharepoint: 'Lien SharePoint',
   lien_explorateur: 'Lien Explorateur',

@@ -204,6 +204,19 @@ et **Version cible**, qui groupe ce qui part dans un même envoi.
   problème observé est corrigé — pas la liste des lignes changées.
 - Une fonctionnalité = version `manifest.json` + entrée CHANGELOG + README si le comportement
   visible change. Les trois ensemble, dans le même commit.
+- **Toute nouvelle action de l'utilisateur dans l'extension est comptée dès sa création**, dans
+  le même commit : clic sur une icône, un bouton ou un lien, case ou réglage des Paramètres,
+  import, export, ouverture d'une page… Seul le Google Sheets en est exclu (menu Clausier du
+  garant, édition du tableau). Une action sans compteur ne se mesure jamais : on ne sait pas si
+  elle sert. Pour chacune, sous l'invariant 9 (la nature de l'usage, jamais une donnée — ni
+  l'avis choisi, ni un texte, ni la valeur d'un réglage autre que son sens) :
+  - l'appel `compterUsage('<cle>')` au moment de l'action (content.js, options.js, popup.js) ;
+  - la clé dans `STATS_CLES` (background.js), sans quoi elle est ignorée en silence ;
+  - son libellé dans `STATS_LIBELLES` (Code.gs), et dans `STATS_REGROUPEMENTS` si elle mérite
+    une colonne en tête de synthèse ;
+  - le rappel « recopier `Code.gs` et enregistrer » dans le CHANGELOG et au « push gh » ;
+  - PRIVACY.md si la nature des données comptées change.
+  Une case de réglage se compte dans ses deux sens, en deux clés (`…_off`, `…_on`).
 - `.DS_Store` et `dist/` sont ignorés. Ne jamais les committer.
 - Code et commentaires en français, comme l'existant.
 

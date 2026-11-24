@@ -550,6 +550,12 @@ document.getElementById('statistiques-utilisation').addEventListener('change', (
     document.getElementById(id).addEventListener('change', (e) => updateSyncSettings({ [cle]: e.target.checked }));
   });
 
+// Les deux sens sont comptés à part : combien d'utilisateurs retirent les boutons d'avis est ce
+// qui dit s'ils gênent.
+document.getElementById('boutons-avis').addEventListener('change', (e) => {
+  compterUsage(e.target.checked ? 'reglage_boutons_avis_on' : 'reglage_boutons_avis_off');
+});
+
 document.getElementById('expansion-delay').addEventListener('change', (e) => {
   updateSyncSettings({ expansionDelayMs: parseInt(e.target.value, 10) || 0 });
 });
