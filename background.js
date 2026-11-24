@@ -254,6 +254,7 @@ const STATS_CLES = [
   'reglage_lien_sharepoint_off', 'reglage_lien_sharepoint_on',
   'reglage_lien_explorateur_off', 'reglage_lien_explorateur_on',
   'reglage_statistiques_on',
+  'reglage_masquer_menus_avis_off', 'reglage_masquer_menus_avis_on',
   'lien_sgo', 'lien_sharepoint', 'lien_explorateur',
   'import_dataviso', 'clausier_import', 'clausier_export',
   'popup', 'parametres', 'tutoriel'
