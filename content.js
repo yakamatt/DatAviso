@@ -929,9 +929,12 @@ function insertAvisoClearButton(container, dispoCell) {
 // Au-dessus du menu déroulant d'avis d'Aviso, une rangée de boutons colorés : un clic choisit
 // l'avis, au lieu d'ouvrir le menu puis de viser la bonne ligne (#94). Le menu reste en place et
 // fait foi : les boutons ne font que le piloter, et suivent son état.
-// Le menu est reconnu au texte de ses options (« Favorable » et « Observation »), pas à ses
-// classes ni à sa colonne : seul critère qui ne dépende pas de la mise en page d'Aviso.
+// Le menu est reconnu à son nom (`verification[<id>][avis_id]`, relevé sur Aviso), ou à défaut au
+// texte de ses options, comparé souplement (cleAvis) : Aviso écrit « Observations » au pluriel
+// et « [Aucun] » entre crochets. La v2.28.0 attendait « Observation » à l'identique et ne
+// reconnaissait aucun menu.
 const AVISO_AVIS_CLASS = 'snippet-expander-aviso-avis';
+const AVIS_NOM_RE = /\[avis_id\]$/;
 const AVIS_REQUIS = ['favorable', 'observation'];
 // Couleur par avis (texte d'option normalisé). Un avis absent d'ici s'affiche en gris : une
 // option ajoutée par Aviso apparaît donc quand même, sans couleur trompeuse.
@@ -948,13 +951,22 @@ const AVIS_COULEUR_DEFAUT = '#6b6b6b';
 // émettre d'évènement (rechargement AJAX de la valeur), que l'écoute de 'change' ne verrait pas.
 const rangeesAvis = new WeakMap();
 
-function normaliserAvis(texte) {
-  return texte.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+// "[Aucun]" -> "aucun", "Observations" -> "observation", "A préciser" -> "a preciser" : sans
+// accents, ponctuation ni pluriel final, pour comparer quelle que soit l'écriture d'Aviso.
+function cleAvis(texte) {
+  return texte.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    .replace(/[^a-z ]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/s$/, '');
+}
+
+// Libellé du bouton : celui d'Aviso, sans les crochets de « [Aucun] ».
+function libelleAvis(texte) {
+  return texte.trim().replace(/^\[(.*)\]$/, '$1').trim();
 }
 
 function estSelecteurAvis(select) {
-  const textes = [...select.options].map(o => normaliserAvis(o.textContent));
-  return AVIS_REQUIS.every(r => textes.includes(r));
+  if (AVIS_NOM_RE.test(select.name || '')) return true;
+  const cles = [...select.options].map(o => cleAvis(o.textContent));
+  return AVIS_REQUIS.every(r => cles.includes(r));
 }
 
 // Choisit l'option comme le ferait l'utilisateur dans le menu : 'input' puis 'change', qui
@@ -982,10 +994,10 @@ function insertAvisoBoutonsAvis(select) {
 
   const boutons = [];
   [...select.options].forEach(option => {
-    const libelle = option.textContent.trim();
+    const libelle = libelleAvis(option.textContent);
     // Ligne vide ou de remplissage du menu (« -- », « --- ») : rien à choisir.
     if (!/\p{L}/u.test(libelle) || option.disabled) return;
-    const couleur = AVIS_COULEURS[normaliserAvis(libelle)] || AVIS_COULEUR_DEFAUT;
+    const couleur = AVIS_COULEURS[cleAvis(libelle)] || AVIS_COULEUR_DEFAUT;
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.textContent = libelle;
