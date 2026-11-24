@@ -966,31 +966,23 @@ const MENUS_AVIS = [
   { requis: ['favorable', 'observation'], statistique: 'aviso_avis' },
   { requis: ['conforme', 'non conforme'], statistique: 'aviso_conformite' }
 ];
-// Couleur par avis (texte d'option normalisé). Un avis absent d'ici s'affiche en gris : une
-// option ajoutée par Aviso apparaît donc quand même, sans couleur trompeuse.
-const AVIS_COULEURS = {
-  'favorable': '#2e7d32',
-  'observation': '#e67e22',
-  'conforme': '#2e7d32',
-  'non conforme': '#e67e22',
-  'a preciser': '#1f6fb2',
-  'aucun': '#6b6b6b',
-  'sans objet': '#6b6b6b',
-  'hors mission': '#6b6b6b'
-};
-const AVIS_COULEUR_DEFAUT = '#6b6b6b';
-// Libellés abrégés : la colonne Remarques est étroite, les six libellés entiers y tenaient sur
-// trois lignes. Abrégés, ils tiennent sur une seule ; le libellé entier reste dans l'infobulle.
-// Un avis absent d'ici garde le libellé d'Aviso.
-const AVIS_ABREGES = {
-  'aucun': 'Aucun',
-  'favorable': 'Fav.',
-  'observation': 'Obs.',
-  'conforme': 'Conf.',
-  'non conforme': 'Non conf.',
-  'hors mission': 'H.M.',
-  'a preciser': 'À préc.',
-  'sans objet': 'S.O.'
+// Couleur et libellé abrégé par avis (texte d'option normalisé par cleAvis). Les deux vont par
+// paire, dans une seule table : séparés, ajouter un avis demandait de penser aux deux, et en
+// oublier un passait inaperçu. Un avis absent d'ici s'affiche en gris avec le libellé d'Aviso —
+// une option ajoutée par Aviso apparaît donc quand même, sans couleur trompeuse.
+//
+// Abrégés parce que la colonne Remarques est étroite : les six libellés entiers y tenaient sur
+// trois lignes, abrégés ils tiennent sur une seule. Le libellé entier reste dans l'infobulle.
+const AVIS_GRIS = '#6b6b6b';
+const AVIS_STYLES = {
+  'aucun':        { couleur: AVIS_GRIS,  abrege: 'Aucun' },
+  'favorable':    { couleur: '#2e7d32', abrege: 'Fav.' },
+  'observation':  { couleur: '#e67e22', abrege: 'Obs.' },
+  'conforme':     { couleur: '#2e7d32', abrege: 'Conf.' },
+  'non conforme': { couleur: '#e67e22', abrege: 'Non conf.' },
+  'a preciser':   { couleur: '#1f6fb2', abrege: 'À préc.' },
+  'sans objet':   { couleur: AVIS_GRIS,  abrege: 'S.O.' },
+  'hors mission': { couleur: AVIS_GRIS,  abrege: 'H.M.' }
 };
 // Les rangées déjà posées, pour les remettre à jour au scan : Aviso peut changer l'avis sans
 // émettre d'évènement (rechargement AJAX de la valeur), que l'écoute de 'change' ne verrait pas.
@@ -1023,13 +1015,36 @@ function libelleAvis(texte) {
   return texte.trim().replace(/^\[(.*)\]$/, '$1').trim();
 }
 
+// Ce que les boutons reflètent : la valeur et le libellé de chaque option. Sert de clé à la
+// famille retenue comme à la rangée posée — ni l'une ni l'autre ne valent pour un autre jeu
+// d'options. Aviso remplit parfois ces menus par AJAX après le premier scan, ou en remplace les
+// options sans remplacer le menu.
+function signatureOptions(select) {
+  return [...select.options].map(o => `${o.value}\u0000${o.textContent}`).join('\u0001');
+}
+
 // Famille du menu (MENUS_AVIS), ou null s'il n'en est pas un. Un menu nommé `[avis_id]` dont les
 // options ne disent pas la famille est un menu d'avis.
-function familleMenuAvis(select) {
+function classerMenuAvis(select) {
   const cles = [...select.options].map(o => cleAvis(o.textContent));
   const famille = MENUS_AVIS.find(m => m.requis.every(r => cles.includes(r)));
   if (famille) return famille;
   return AVIS_NOM_RE.test(select.name || '') ? MENUS_AVIS[0] : null;
+}
+
+// La famille ne change pas tant que les options ne changent pas : elle est retenue par menu,
+// pour ne pas normaliser par cleAvis toutes les options de tous les `<select>` de la page à
+// chaque scan — et le scan se relance à chaque modification du DOM comme à chaque
+// redimensionnement. La clé est la signature et non le menu seul : sinon un menu encore vide
+// resterait classé « pas un menu d'avis » pour toujours.
+const famillesMenus = new WeakMap();
+
+function familleMenuAvis(select, signature) {
+  const retenu = famillesMenus.get(select);
+  if (retenu && retenu.signature === signature) return retenu.famille;
+  const famille = classerMenuAvis(select);
+  famillesMenus.set(select, { signature, famille });
+  return famille;
 }
 
 // Choisit l'avis comme le ferait l'utilisateur dans le menu : 'input' puis 'change', qui
@@ -1069,16 +1084,8 @@ function reafficherMenusAvis() {
   document.querySelectorAll(`select[${AVIS_MENU_MASQUE_ATTR}]`).forEach(demasquerMenuAvis);
 }
 
-// Ce que les boutons reflètent : la valeur et le libellé de chaque option. Une rangée posée sur
-// un autre jeu d'options est périmée — Aviso charge parfois les options par AJAX après le premier
-// scan, ou les remplace sans remplacer le menu.
-function signatureOptions(select) {
-  return [...select.options].map(o => `${o.value}\u0000${o.textContent}`).join('\u0001');
-}
-
-function insertAvisoBoutonsAvis(select, famille) {
+function insertAvisoBoutonsAvis(select, famille, signature) {
   const existante = rangeesAvis.get(select);
-  const signature = signatureOptions(select);
   // La rangée en place ne vaut que pour les options sur lesquelles elle a été construite : sinon
   // on retombe plus bas sur une reconstruction complète.
   if (existante && existante.isConnected && existante.signatureAvis === signature) {
@@ -1098,11 +1105,12 @@ function insertAvisoBoutonsAvis(select, famille) {
     const libelle = libelleAvis(option.textContent);
     // Ligne vide ou de remplissage du menu (« -- », « --- ») : rien à choisir.
     if (!/\p{L}/u.test(libelle) || option.disabled) return;
-    const couleur = AVIS_COULEURS[cleAvis(libelle)] || AVIS_COULEUR_DEFAUT;
+    const style = AVIS_STYLES[cleAvis(libelle)] || {};
+    const couleur = style.couleur || AVIS_GRIS;
     const valeur = option.value;
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.textContent = AVIS_ABREGES[cleAvis(libelle)] || libelle;
+    btn.textContent = style.abrege || libelle;
     btn.title = `Avis : ${libelle}`;
     btn.style.cssText = 'all:unset;cursor:pointer;box-sizing:border-box;padding:1px 5px;flex:none;'
       + 'border-radius:10px;font:600 11px/16px Arial,sans-serif;white-space:nowrap;'
@@ -1160,8 +1168,9 @@ function insertAvisoBoutonsAvis(select, famille) {
 function scanSelecteursAvis() {
   if (!BOUTONS_AVIS) return;
   document.querySelectorAll('select').forEach(select => {
-    const famille = familleMenuAvis(select);
-    if (famille) insertAvisoBoutonsAvis(select, famille);
+    const signature = signatureOptions(select);
+    const famille = familleMenuAvis(select, signature);
+    if (famille) insertAvisoBoutonsAvis(select, famille, signature);
   });
   ajusterLiensRemarques();
 }
