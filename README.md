@@ -30,6 +30,8 @@ Remplace automatiquement un texte court (ex: `;sig`) par un texte prédéfini, d
   - sur la trame **HAND** (accessibilité PMR), la même icône ouvre sur **Légifrance** l'article de l'arrêté du 20 avril 2017 auquel la rubrique se rattache (`Art. 7.1` ouvre l'article 7-1). Elle s'affiche sur les lignes « Art. N » du référentiel, avec ou sans snippet (voir `legifrance-articles.js`) ;
   - l'icône **verte** ajoute les données **DatAviso AI** de cet article (voir ci-dessous), et affiche au survol le texte qui sera inséré. Elle n'apparaît que si un article importé porte le même code.
 
+  Au-dessus du **menu déroulant d'avis** (Aucun, Favorable, Observation, Hors mission, À préciser, Sans objet), une rangée de **boutons colorés** choisit l'avis d'un clic : Favorable en vert, Observation en orange, À préciser en bleu, les autres en gris. Le bouton de l'avis en cours est plein. Le menu reste utilisable et fait foi : les boutons le pilotent et suivent son état.
+
   Au bord droit de la cellule, une **corbeille** (visible dès que la cellule contient du texte, sur toutes les lignes) efface son contenu d'un clic. Elle devient aussitôt un bouton **"Annuler l'effacement"**, qui remet le texte tant que la cellule est restée vide.
 
   Toute insertion s'ajoute à la suite du texte existant, sans jamais l'écraser, et le champ s'agrandit pour montrer tout le texte inséré (jusqu'à 60 % de la hauteur de la fenêtre, avec défilement au-delà). L'intégration est toujours active sur Aviso et sans effet sur les autres sites.

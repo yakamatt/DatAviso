@@ -925,6 +925,114 @@ function insertAvisoClearButton(container, dispoCell) {
   container.insertBefore(btn, container.firstChild);
 }
 
+// ---------- Boutons d'avis : Aucun, Favorable, Observation, Hors mission… ----------
+// Au-dessus du menu déroulant d'avis d'Aviso, une rangée de boutons colorés : un clic choisit
+// l'avis, au lieu d'ouvrir le menu puis de viser la bonne ligne (#94). Le menu reste en place et
+// fait foi : les boutons ne font que le piloter, et suivent son état.
+// Le menu est reconnu au texte de ses options (« Favorable » et « Observation »), pas à ses
+// classes ni à sa colonne : seul critère qui ne dépende pas de la mise en page d'Aviso.
+const AVISO_AVIS_CLASS = 'snippet-expander-aviso-avis';
+const AVIS_REQUIS = ['favorable', 'observation'];
+// Couleur par avis (texte d'option normalisé). Un avis absent d'ici s'affiche en gris : une
+// option ajoutée par Aviso apparaît donc quand même, sans couleur trompeuse.
+const AVIS_COULEURS = {
+  'favorable': '#2e7d32',
+  'observation': '#e67e22',
+  'a preciser': '#1f6fb2',
+  'aucun': '#6b6b6b',
+  'sans objet': '#6b6b6b',
+  'hors mission': '#6b6b6b'
+};
+const AVIS_COULEUR_DEFAUT = '#6b6b6b';
+// Les rangées déjà posées, pour les remettre à jour au scan : Aviso peut changer l'avis sans
+// émettre d'évènement (rechargement AJAX de la valeur), que l'écoute de 'change' ne verrait pas.
+const rangeesAvis = new WeakMap();
+
+function normaliserAvis(texte) {
+  return texte.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function estSelecteurAvis(select) {
+  const textes = [...select.options].map(o => normaliserAvis(o.textContent));
+  return AVIS_REQUIS.every(r => textes.includes(r));
+}
+
+// Choisit l'option comme le ferait l'utilisateur dans le menu : 'input' puis 'change', qui
+// remontent jusqu'aux écouteurs d'Aviso (jQuery compris) pour l'enregistrement.
+function choisirAvis(select, option) {
+  if (option.selected) return false;
+  option.selected = true;
+  select.dispatchEvent(new Event('input', { bubbles: true }));
+  select.dispatchEvent(new Event('change', { bubbles: true }));
+  return true;
+}
+
+function insertAvisoBoutonsAvis(select) {
+  const existante = rangeesAvis.get(select);
+  if (existante && existante.isConnected) {
+    existante.majAvis();
+    return;
+  }
+
+  const rangee = document.createElement('div');
+  rangee.className = AVISO_AVIS_CLASS;
+  rangee.setAttribute('role', 'group');
+  rangee.setAttribute('aria-label', "Choisir l'avis");
+  rangee.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin:0 0 4px 0;';
+
+  const boutons = [];
+  [...select.options].forEach(option => {
+    const libelle = option.textContent.trim();
+    // Ligne vide ou de remplissage du menu (« -- », « --- ») : rien à choisir.
+    if (!/\p{L}/u.test(libelle) || option.disabled) return;
+    const couleur = AVIS_COULEURS[normaliserAvis(libelle)] || AVIS_COULEUR_DEFAUT;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = libelle;
+    btn.title = `Avis : ${libelle}`;
+    btn.style.cssText = 'all:unset;cursor:pointer;box-sizing:border-box;padding:1px 7px;'
+      + 'border-radius:10px;font:600 11px/16px Arial,sans-serif;white-space:nowrap;'
+      + `border:1px solid ${couleur};`;
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (select.disabled) return;
+      if (choisirAvis(select, option)) compterUsage('aviso_avis');
+      majAvis();
+    });
+    boutons.push({ btn, option, couleur });
+    rangee.appendChild(btn);
+  });
+
+  // Le bouton de l'avis en cours est plein, les autres au trait : l'état se lit d'un coup d'œil.
+  function majAvis() {
+    boutons.forEach(({ btn, option, couleur }) => {
+      const actif = option.selected;
+      btn.style.background = actif ? couleur : '#fff';
+      btn.style.color = actif ? '#fff' : couleur;
+      btn.style.opacity = select.disabled ? '0.5' : '1';
+      btn.style.cursor = select.disabled ? 'default' : 'pointer';
+      btn.setAttribute('aria-pressed', String(actif));
+    });
+  }
+  rangee.majAvis = majAvis;
+  select.addEventListener('change', majAvis);
+  majAvis();
+
+  // Un menu remplacé par Aviso (rechargement AJAX) peut laisser derrière lui la rangée de
+  // l'ancien : on la retire, sinon la ligne porterait deux rangées.
+  const orpheline = select.previousElementSibling;
+  if (orpheline && orpheline.classList.contains(AVISO_AVIS_CLASS)) orpheline.remove();
+  select.insertAdjacentElement('beforebegin', rangee);
+  rangeesAvis.set(select, rangee);
+}
+
+function scanSelecteursAvis() {
+  document.querySelectorAll('select').forEach(select => {
+    if (estSelecteurAvis(select)) insertAvisoBoutonsAvis(select);
+  });
+}
+
 // ---------- Liens d'affaire : SGO, SharePoint, Explorateur Windows ----------
 // À partir du numéro d'affaire (8 chiffres en général, parfois 7 : utilisé tel quel), trois
 // liens discrets, monochromes, chacun désactivable dans Paramètres avancés :
@@ -1221,6 +1329,7 @@ function scanLiensAffaire() {
 
 function scanAvisoTable() {
   lierEditeursRiches();
+  scanSelecteursAvis();
   const articlesPmr = articlesPmrParLigne();
   document.querySelectorAll('td.referentiel.content').forEach(refCell => {
     const tr = refCell.closest('tr');

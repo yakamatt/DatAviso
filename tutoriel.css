@@ -327,6 +327,11 @@ code {
 }
 .tuile img, .tuile svg { width: 16px; height: 16px; display: block; }
 .tuile.corbeille { color: #8a8f99; }
+/* Boutons d'avis : reprend le bouton plein posé sur Aviso (content.js, AVIS_COULEURS). */
+.tuile.avis { width: auto; padding: 0 3px; }
+.pastille-avis { padding: 0 5px; border-radius: 10px; background: #2e7d32; color: #fff; font: 600 10px/16px Arial, sans-serif; }
+.avis-vert { color: #2e7d32; font-weight: 600; }
+.avis-orange { color: #e67e22; font-weight: 600; }
 
 /* DatAviso AI */
 .flux { flex-direction: row; justify-content: center; gap: 18px; }
