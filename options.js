@@ -27,6 +27,7 @@ function load(ouverture = false) {
     document.getElementById('lien-sgo').checked = s.lienSgo !== false;
     document.getElementById('lien-sharepoint').checked = s.lienSharepoint !== false;
     document.getElementById('lien-explorateur').checked = s.lienExplorateur !== false;
+    document.getElementById('boutons-avis').checked = s.boutonsAvis !== false;
     document.getElementById('sauvegarde-clausier').checked = s.sauvegardeClausier !== false;
     document.getElementById('statistiques-utilisation').checked = s.statistiquesUtilisation !== false;
     document.getElementById('sheet-url').value = s.sheetUrl || '';
@@ -541,9 +542,10 @@ document.getElementById('statistiques-utilisation').addEventListener('change', (
   if (!e.target.checked) chrome.storage.local.remove(['statsJours', 'statsEnvoyes']);
 });
 
-// Liens vers l'affaire (SGO, SharePoint, Explorateur) : content.js écoute syncSettings et pose ou
-// retire les icônes aussitôt, sans recharger Aviso.
-[['lien-sgo', 'lienSgo'], ['lien-sharepoint', 'lienSharepoint'], ['lien-explorateur', 'lienExplorateur']]
+// Liens vers l'affaire (SGO, SharePoint, Explorateur) et boutons d'avis : content.js écoute
+// syncSettings et pose ou retire les éléments aussitôt, sans recharger Aviso.
+[['lien-sgo', 'lienSgo'], ['lien-sharepoint', 'lienSharepoint'], ['lien-explorateur', 'lienExplorateur'],
+  ['boutons-avis', 'boutonsAvis']]
   .forEach(([id, cle]) => {
     document.getElementById(id).addEventListener('change', (e) => updateSyncSettings({ [cle]: e.target.checked }));
   });

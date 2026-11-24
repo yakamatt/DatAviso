@@ -1,5 +1,8 @@
 # Changelog — DatAviso
 
+## v2.29.0 — 2026-11-24
+- **Les boutons d'avis se désactivent** (#94) : Paramètres avancés > Boutons d'avis, case « Afficher les boutons d'avis », cochée par défaut. Le changement s'applique aussitôt sur les onglets Aviso ouverts, sans les recharger ; le menu déroulant d'Aviso reste utilisable dans tous les cas
+
 ## v2.28.1 — 2026-11-24
 - **Correctif : les boutons d'avis s'affichent sur Aviso** (#94). Ils n'apparaissaient sur aucune ligne : la v2.28.0 reconnaissait le menu à deux options écrites exactement « Favorable » et « Observation », alors qu'Aviso écrit « Observations », au pluriel. Le menu est désormais reconnu à son nom (`verification[…][avis_id]`), relevé sur Aviso, et à défaut à ses options, comparées sans accents, ponctuation ni pluriel final
 - **Libellés abrégés, sur une seule ligne** : Aucun, Fav., Obs., H.M., À préc., S.O. Entiers, les six boutons tenaient sur trois lignes dans la colonne Remarques, étroite. Le libellé complet reste dans l'infobulle, et un avis inconnu garde celui d'Aviso
