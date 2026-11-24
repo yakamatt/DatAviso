@@ -183,16 +183,16 @@
 
         <div class="advanced-block">
           <h3>Boutons d'avis</h3>
-          <p class="hint">Sur Aviso, une rangée de boutons colorés au-dessus du menu déroulant d'avis (Aucun, Fav., Obs., H.M., À préc., S.O.) choisit l'avis d'un clic ; de même au-dessus des menus de conformité (Conf., Non conf.…). Le menu reste utilisable, sauf si vous choisissez de le masquer ci-dessous.</p>
+          <p class="hint">Sur Aviso, les menus déroulants d'avis (Aucun, Favorable, Observations…) et de conformité (Conforme, Non conforme…) peuvent être remplacés par une rangée de boutons colorés, qui choisit d'un clic.</p>
           <div class="row-between">
-            <label for="boutons-avis">Afficher les boutons d'avis</label>
-            <input type="checkbox" id="boutons-avis" checked />
+            <label for="mode-avis-boutons">Remplacer le menu déroulant par des boutons</label>
+            <input type="radio" name="mode-avis" id="mode-avis-boutons" value="boutons" checked />
           </div>
           <div class="row-between">
-            <label for="masquer-menus-avis">Masquer les menus déroulants remplacés par les boutons</label>
-            <input type="checkbox" id="masquer-menus-avis" />
+            <label for="mode-avis-menu">Utiliser le menu déroulant d'origine (sans bouton)</label>
+            <input type="radio" name="mode-avis" id="mode-avis-menu" value="menu" />
           </div>
-          <p class="hint">Le menu masqué reste en place : l'avis choisi par un bouton est enregistré comme avant. Décochez pour le retrouver.</p>
+          <p class="hint">Remplacé, le menu reste en place, masqué : l'avis choisi par un bouton est enregistré comme avant.</p>
         </div>
 
         <div class="advanced-block">

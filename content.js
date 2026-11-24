@@ -12,11 +12,10 @@ let EXPANSION_DELAY_MS = 1000;
 // Liens SGO / SharePoint / Explorateur posés sur les affaires dans Aviso, un réglage par lien
 // (Paramètres avancés). Actifs par défaut : un réglage absent vaut "activé".
 let LIENS_AFFAIRE = { sgo: true, sharepoint: true, explorateur: true };
-// Boutons d'avis au-dessus du menu déroulant d'Aviso (Paramètres avancés). Actifs par défaut.
+// Menus d'avis et de conformité d'Aviso (Paramètres avancés > Boutons d'avis) : remplacés par des
+// boutons, le menu étant alors masqué (par défaut), ou laissés d'origine, sans bouton. Deux choix
+// exclusifs : un menu n'est jamais masqué sans boutons pour le remplacer.
 let BOUTONS_AVIS = true;
-// Masquer les menus déroulants doublés par ces boutons (Paramètres avancés). Désactivé par défaut,
-// et sans effet quand les boutons sont désactivés : un menu n'est jamais masqué sans remplaçant.
-let MASQUER_MENUS_AVIS = false;
 let pendingTimeoutId = null;
 
 // Déclarés avant loadSnippets() car référencés depuis son callback : chrome.storage est
@@ -77,12 +76,17 @@ function appliquerReglages(s) {
     explorateur: s.lienExplorateur !== false
   };
   if (JSON.stringify(LIENS_AFFAIRE) !== avant) aRetirer.push(AVISO_LIENS_CLASS);
-  const boutonsAvis = s.boutonsAvis !== false;
-  const masquerMenus = s.masquerMenusAvis === true;
-  if (boutonsAvis !== BOUTONS_AVIS || masquerMenus !== MASQUER_MENUS_AVIS) aRetirer.push(AVISO_AVIS_CLASS);
+  const boutonsAvis = modeAvis(s) === 'boutons';
+  if (boutonsAvis !== BOUTONS_AVIS) aRetirer.push(AVISO_AVIS_CLASS);
   BOUTONS_AVIS = boutonsAvis;
-  MASQUER_MENUS_AVIS = masquerMenus;
   return aRetirer;
+}
+
+// 'boutons' (par défaut) ou 'menu'. Avant la v2.32.0, deux cases : qui avait décoché « Afficher
+// les boutons d'avis » (boutonsAvis: false) retrouve le menu d'origine. Même règle dans options.js.
+function modeAvis(s) {
+  if (s.modeAvis === 'boutons' || s.modeAvis === 'menu') return s.modeAvis;
+  return s.boutonsAvis === false ? 'menu' : 'boutons';
 }
 
 function reglagesModifies(s) {
@@ -1026,7 +1030,7 @@ function choisirAvis(select, option) {
 const AVIS_MENU_MASQUE_ATTR = 'data-dataviso-menu-masque';
 
 function masquerMenuAvis(select) {
-  if (!MASQUER_MENUS_AVIS || select.hasAttribute(AVIS_MENU_MASQUE_ATTR)) return;
+  if (select.hasAttribute(AVIS_MENU_MASQUE_ATTR)) return;
   select.setAttribute(AVIS_MENU_MASQUE_ATTR, '');
   select.style.display = 'none';
 }

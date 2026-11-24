@@ -679,6 +679,9 @@ const STATS_LIBELLES = {
   reglage_statistiques_on: 'Paramètres : statistiques réactivées',
   reglage_masquer_menus_avis_off: 'Paramètres : menus d\'avis réaffichés',
   reglage_masquer_menus_avis_on: 'Paramètres : menus d\'avis masqués',
+  // Remplacent les quatre précédents depuis la v2.32.0 (gardés pour les lignes déjà reçues).
+  reglage_mode_avis_boutons: 'Paramètres : avis par boutons (menu masqué)',
+  reglage_mode_avis_menu: 'Paramètres : avis par menu d\'origine',
   lien_sgo: 'Lien SGO',
   lien_sharepoint: 'Lien SharePoint',
   lien_explorateur: 'Lien Explorateur',
