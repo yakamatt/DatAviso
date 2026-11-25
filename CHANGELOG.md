@@ -1,5 +1,10 @@
 # Changelog — DatAviso
 
+## v2.33.3 — 2026-11-25
+- **Correctif : les boutons d'avis ne passent plus sous « Choix du Plan d'affaire » et « Clausier »** (#115). Même sur grand écran, les deux liens de la cellule Remarques recouvraient « À préc. » et « S.O. » sur les lignes où un avis venait d'être posé : Aviso les fait apparaître à ce moment-là, après le passage de l'extension, et le replacement de la v2.32.1 ne se relançait pas. Il ne faisait rien non plus sur une ligne sans bouton « Descendre l'avis »
+- Le replacement mesuré est remplacé par une mise en page qui ne peut plus se chevaucher : la zone des boutons s'élargit à leur largeur réelle, et les deux liens ne prennent plus que leur propre place. Ils se rangent à droite des boutons quand la cellule le permet, et passent sinon à la ligne du dessous, d'eux-mêmes, quel que soit le moment où Aviso les affiche. Avec le menu d'origine (Paramètres avancés > Boutons d'avis), la cellule reste telle qu'Aviso la dessine
+- Aucune action nouvelle, donc aucun compteur ; `Code.gs` ne change pas
+
 ## v2.33.2 — 2026-11-25
 - **Correctif : plus de boutons d'avis sur la page de validation de plan** (#110). Sur les pages dont l'adresse commence par `https://aviso2.bureauveritas.com/verifications/edit/`, les menus déroulants restent ceux d'Aviso, quel que soit le réglage « Boutons d'avis » : l'extension y reconnaissait des menus aux options d'avis et les masquait derrière ses boutons. Ailleurs sur Aviso, rien ne change. Si Aviso arrive sur cette page sans la recharger, les boutons déjà posés sont retirés et les menus réaffichés
 - Aucune action nouvelle, donc aucun compteur ; `Code.gs` ne change pas
