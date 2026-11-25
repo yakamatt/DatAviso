@@ -1,5 +1,17 @@
 # Changelog — DatAviso
 
+## v2.34.0 — 2026-11-25
+- **Liens Légifrance pour toutes les parties de la trame HAND** (#109). La trame HAND d'Aviso réunit plusieurs textes, une partie par texte ; chaque ligne « Art. N » ouvre maintenant l'article du texte de sa partie :
+  - « Accessibilité des ERP et des IOP … neufs » : arrêté du 20 avril 2017, comme avant ;
+  - « Accessibilité … des bâtiments d'habitation collectifs et des maisons individuelles » : **arrêté du 24 décembre 2015**, articles 1 à 17 (`Art. 6.1 Escaliers` ouvre l'article 6) ;
+  - « Accessibilité … des logements destinés à l'occupation temporaire ou saisonnière » : **arrêté du 14 mars 2014**, articles 1 à 5 (`Art. 3.2` ouvre l'article 3) ;
+  - « Accessibilité des constructions … - Code du travail » : **arrêté du 27 juin 1994** (lieux de travail), articles 2 à 8 (`Art. 3.II-1 et 2` ouvre l'article 3).
+- **Paramètres avancés > Liens réglementaires** : deux nouvelles cases, Légifrance seul et cochées par défaut, « Accessibilité habitation neuve » (les deux parties logements) et « Accessibilité lieux de travail ». La case HAND existante règle la partie ERP
+- **Correctif : un « Art. N » de la trame HAND n'ouvre plus l'article N de l'arrêté ERP hors de la partie ERP.** Tout « Art. N » de la trame renvoyait à l'arrêté du 20 avril 2017 : dans la partie logements, « Art. 11. Caractéristiques de base pour tous les logements » ouvrait l'article 11 des ERP, et dans la partie code du travail, « Art. 2 - Cheminement praticable » l'article 2 des ERP. Chaque ligne suit désormais le texte de sa partie, reconnue à sa ligne de titre ; une partie au titre inconnu n'a aucun lien
+- Identifiants Légifrance (version en vigueur) relevés le 2026-11-25, l'objet de chaque article contrôlé contre le titre de la rubrique Aviso de même numéro. Aucune permission nouvelle
+- **Statistiques** : chaque nouvelle case est comptée dans ses deux sens (« accessibilité habitation / lieux de travail, lien Légifrance désactivé / réactivé »). Même nature d'usage : PRIVACY.md ne change pas
+- Tutoriel : la légende des liens réglementaires cite la trame HAND
+- ⚠️ **`Code.gs` est à recopier dans l'éditeur Apps Script et à enregistrer** (libellés des quatre compteurs). Aucun déploiement en « Nouvelle version » n'est nécessaire
 ## v2.33.3 — 2026-11-25
 - **Correctif : les boutons d'avis ne passent plus sous « Choix du Plan d'affaire » et « Clausier »** (#115). Même sur grand écran, les deux liens de la cellule Remarques recouvraient « À préc. » et « S.O. » sur les lignes où un avis venait d'être posé : Aviso les fait apparaître à ce moment-là, après le passage de l'extension, et le replacement de la v2.32.1 ne se relançait pas. Il ne faisait rien non plus sur une ligne sans bouton « Descendre l'avis »
 - Le replacement mesuré est remplacé par une mise en page qui ne peut plus se chevaucher : la zone des boutons s'élargit à leur largeur réelle, et les deux liens ne prennent plus que leur propre place. Ils se rangent à droite des boutons quand la cellule le permet, et passent sinon à la ligne du dessous, d'eux-mêmes, quel que soit le moment où Aviso les affiche. Avec le menu d'origine (Paramètres avancés > Boutons d'avis), la cellule reste telle qu'Aviso la dessine
