@@ -146,7 +146,8 @@ Les icônes s'insèrent dans la cellule « Dispositions réalisées », dans l'o
   lecture dans content.js et options.js) : `'boutons'` par défaut (rangée posée, menu masqué) ou
   `'menu'` (menu d'origine, aucun bouton) — jamais de menu masqué sans boutons. Les anciennes clés
   `boutonsAvis` / `masquerMenusAvis` (v2.29–2.31) ne servent plus qu'à reprendre un ancien
-  réglage. Un menu masqué porte `data-dataviso-menu-masque`, seul critère pour le réafficher.
+  réglage. Aucune rangée sur les chemins de `PAGES_SANS_BOUTONS_AVIS` (validation de plan,
+  `/verifications/edit/`, #110), quel que soit le réglage : ses menus ne sont pas des avis de ligne. Un menu masqué porte `data-dataviso-menu-masque`, seul critère pour le réafficher.
   La règle « jamais de menu masqué sans boutons » vaut aussi pour les options : une rangée est
   liée au jeu d'options sur lequel elle a été construite (`signatureOptions`) et reconstruite dès
   qu'il change ; si aucune option n'est utilisable, le menu d'origine reste visible. Aviso remplit
@@ -160,14 +161,15 @@ Les icônes s'insèrent dans la cellule « Dispositions réalisées », dans l'o
   avec le libellé d'Aviso. La famille d'un menu est retenue par menu (`famillesMenus`), la
   signature de ses options pour clé et non le menu seul — sinon un menu encore vide resterait
   classé « pas un menu d'avis » pour toujours.
-  Écran étroit (`ajusterLiensRemarques`) : si un bouton de la rangée recouvre `#open_remarques_pa`
-  ou `#open_clausier` (ids répétés à chaque ligne : toujours chercher dans la cellule), ces liens
-  passent après le bouton « Descendre l'avis » et reviennent quand la place le permet. Une
-  cellule n'est réexaminée que si sa largeur a changé : le déplacement relance le scan, et sans
-  cette garde l'aller-retour boucle. Mesures et déplacements restent groupés en passes (lecture,
-  écriture, lecture, écriture) et jamais entrelacés cellule par cellule : un déplacement invalide
-  la mise en page, et mesurer juste après la fait recalculer — une page de 50 lignes passe de 49
-  recalculs forcés à aucun.
+  Place des liens `#open_remarques_pa` et `#open_clausier` (`elargirConteneurAvis`) : quand le
+  menu est masqué, `#show_avis` (50 % de la cellule) prend `min-width: max-content` et
+  `#rmq_buttons_tpl` (28 %) `width: auto`. Les liens se placent alors à la suite des boutons ou
+  passent d'eux-mêmes à la ligne : c'est la mise en page qui les écarte, **sans mesure ni
+  déplacement**. L'ancien replacement mesuré (`ajusterLiensRemarques`, v2.32.1–2.33.2) ratait les
+  liens qu'Aviso affiche après le scan (simple changement de style, invisible au
+  `MutationObserver`, qui ne suit que `childList`) et les lignes sans « Descendre l'avis » (#115).
+  L'élargissement suit le masquage du menu (`masquerMenuAvis` / `demasquerMenuAvis`), marqué par
+  `data-dataviso-avis-elargi`, seul critère pour rendre ces styles à Aviso.
 - L'intégration est toujours active sur Aviso (le réglage « Intégration Aviso » a été retiré en
   v2.18.0) et sans effet ailleurs (`isAvisoSite`).
 

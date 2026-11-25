@@ -128,7 +128,6 @@ function reglagesModifies(s) {
   // Les menus masqués réapparaissent d'abord ; le scan qui suit remasque ceux qui doivent l'être.
   if (aRetirer.includes(AVISO_AVIS_CLASS)) {
     reafficherMenusAvis();
-    remettreTousLiensRemarques();
   }
   retirerIconesAviso(aRetirer);
 }
@@ -1244,16 +1243,43 @@ function choisirAvis(select, valeur) {
 // sa valeur : les boutons continuent de le piloter, et Aviso de l'enregistrer.
 const AVIS_MENU_MASQUE_ATTR = 'data-dataviso-menu-masque';
 
+// Le conteneur du menu (`#show_avis` dans la cellule Remarques) ne fait que 50 % de la cellule, à
+// côté des liens « Choix du Plan d'affaire » et « Clausier » (`#rmq_buttons_tpl`, 28 %). Une
+// rangée de boutons plus large que ces 50 % en débordait et passait sous les liens (#94, #115).
+// Le conteneur s'élargit donc à la rangée (`min-width: max-content`, jamais en dessous des 50 %
+// d'Aviso) : les liens, en ligne comme lui, se placent à sa suite s'il reste la place, ou passent
+// d'eux-mêmes à la ligne du dessous. C'est la mise en page qui les écarte, sans mesure ni
+// déplacement : rien à rattraper quand Aviso les affiche après le scan (simple changement de
+// style, que le MutationObserver ne voit pas) ni quand la ligne n'a pas de « Descendre l'avis ».
+// Le bloc des liens perd en même temps sa largeur fixe de 28 % pour ne prendre que celle de ses
+// deux liens : sur un grand écran, ils tiennent ainsi à droite des boutons au lieu de descendre.
+// L'élargissement suit le masquage du menu : l'un ne va jamais sans l'autre. L'attribut marque ce
+// que l'extension a modifié, seul critère pour le rendre à Aviso.
+const AVIS_CONTENEUR_ELARGI_ATTR = 'data-dataviso-avis-elargi';
+
+function elargirConteneurAvis(conteneur, elargir) {
+  if (!conteneur) return;
+  // Bloc des liens : frère du conteneur dans la cellule (ids répétés à chaque ligne).
+  const liens = conteneur.parentElement && conteneur.parentElement.querySelector(':scope > #rmq_buttons_tpl');
+  [[conteneur, 'minWidth', 'max-content'], [liens, 'width', 'auto']].forEach(([el, prop, valeur]) => {
+    if (!el || el.hasAttribute(AVIS_CONTENEUR_ELARGI_ATTR) === elargir) return;
+    el.toggleAttribute(AVIS_CONTENEUR_ELARGI_ATTR, elargir);
+    el.style[prop] = elargir ? valeur : '';
+  });
+}
+
 function masquerMenuAvis(select) {
   if (select.hasAttribute(AVIS_MENU_MASQUE_ATTR)) return;
   select.setAttribute(AVIS_MENU_MASQUE_ATTR, '');
   select.style.display = 'none';
+  elargirConteneurAvis(select.parentElement, true);
 }
 
 function demasquerMenuAvis(select) {
   if (!select.hasAttribute(AVIS_MENU_MASQUE_ATTR)) return;
   select.removeAttribute(AVIS_MENU_MASQUE_ATTR);
   select.style.display = '';
+  elargirConteneurAvis(select.parentElement, false);
 }
 
 function reafficherMenusAvis() {
@@ -1341,95 +1367,32 @@ function insertAvisoBoutonsAvis(select, famille, signature) {
   masquerMenuAvis(select);
 }
 
+// Pages où aucun menu n'est remplacé par des boutons, quel que soit le réglage (#110). La
+// validation de plan (/verifications/edit/…) porte des menus que `familleMenuAvis` reconnaît,
+// mais qui n'y sont pas des avis de ligne de rapport : les remplacer y gênait la saisie. Préfixes
+// de chemin comparés sans casse ; l'hôte est déjà celui d'Aviso (isAvisoSite).
+const PAGES_SANS_BOUTONS_AVIS = ['/verifications/edit/'];
+
+function pageSansBoutonsAvis() {
+  const chemin = location.pathname.toLowerCase();
+  return PAGES_SANS_BOUTONS_AVIS.some(prefixe => chemin.startsWith(prefixe));
+}
+
 function scanSelecteursAvis() {
   if (!BOUTONS_AVIS) return;
+  if (pageSansBoutonsAvis()) {
+    // Arrivé ici sans rechargement (navigation AJAX) : rien ne doit rester des boutons posés
+    // avant, ni menu masqué sans bouton.
+    if (document.querySelector('.' + AVISO_AVIS_CLASS) || document.querySelector(`select[${AVIS_MENU_MASQUE_ATTR}]`)) {
+      reafficherMenusAvis();
+      document.querySelectorAll('.' + AVISO_AVIS_CLASS).forEach(el => el.remove());
+    }
+    return;
+  }
   document.querySelectorAll('select').forEach(select => {
     const signature = signatureOptions(select);
     const famille = familleMenuAvis(select, signature);
     if (famille) insertAvisoBoutonsAvis(select, famille, signature);
-  });
-  ajusterLiensRemarques();
-}
-
-// Sur un écran étroit, la rangée de boutons d'avis (sur une ligne) recouvre les deux liens que
-// la cellule Remarques place à sa droite, « Choix du Plan d'affaire » et « Clausier ». Ces deux
-// liens descendent alors à la ligne du dessous, à droite du bouton « Descendre l'avis », et
-// reprennent leur place quand la cellule redevient assez large ou que les boutons sont retirés.
-// Déplacer un élément relance le scan (MutationObserver) : une cellule n'est donc réexaminée que
-// si sa largeur a changé depuis le dernier déplacement, faute de quoi l'aller-retour bouclerait.
-const LIENS_REMARQUES_SEL = '#open_remarques_pa, #open_clausier';
-const liensDeplaces = new Map(); // cellule td.remarques -> { largeur, liens: [{ el, parent, suivant }] }
-
-function boutonDescendreAvis(cellule) {
-  return [...cellule.querySelectorAll('button, a')].find(el =>
-    /descendre l.avis/i.test(`${el.title || ''} ${el.getAttribute('aria-label') || ''} ${el.textContent}`));
-}
-
-function seChevauchent(a, b) {
-  return a.width > 0 && b.width > 0 &&
-    a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-}
-
-function remettreLiensRemarques(cellule) {
-  const etat = liensDeplaces.get(cellule);
-  if (!etat) return;
-  etat.liens.forEach(({ el, parent, suivant }) => {
-    el.style.marginLeft = '';
-    if (parent.isConnected) parent.insertBefore(el, suivant && suivant.parentNode === parent ? suivant : null);
-  });
-  liensDeplaces.delete(cellule);
-}
-
-function remettreTousLiensRemarques() {
-  [...liensDeplaces.keys()].forEach(remettreLiensRemarques);
-}
-
-// Les mesures et les déplacements sont séparés en passes, et non entrelacés cellule par cellule :
-// un déplacement invalide la mise en page, et mesurer juste après force le navigateur à la
-// recalculer entièrement. Une page d'une centaine de lignes faisait donc un recalcul complet par
-// ligne, à chaque scan — sensible au redimensionnement de la fenêtre, qui relance le scan en
-// continu. Ainsi groupées, deux lectures et deux écritures suffisent pour toute la page.
-function ajusterLiensRemarques() {
-  // Cellules disparues (rechargement AJAX) : on oublie leur état.
-  [...liensDeplaces.keys()].forEach(c => { if (!c.isConnected) liensDeplaces.delete(c); });
-
-  // Lecture : les largeurs, avant toute écriture.
-  const candidates = [];
-  document.querySelectorAll(`td.remarques .${AVISO_AVIS_CLASS}`).forEach(rangee => {
-    const cellule = rangee.closest('td.remarques');
-    const largeur = cellule.clientWidth;
-    const etat = liensDeplaces.get(cellule);
-    if (etat && largeur <= etat.largeur) return; // rien n'a changé : on n'y touche pas
-    candidates.push({ rangee, cellule, largeur, aRemettre: !!etat });
-  });
-  if (!candidates.length) return;
-
-  // Écriture : plus large qu'au dernier déplacement, on réessaie à la place d'origine.
-  candidates.forEach(c => { if (c.aRemettre) remettreLiensRemarques(c.cellule); });
-
-  // Lecture : les chevauchements, une fois tous les retours faits.
-  const aDeplacer = [];
-  candidates.forEach(({ rangee, cellule, largeur }) => {
-    const liens = [...cellule.querySelectorAll(LIENS_REMARQUES_SEL)];
-    const descendre = boutonDescendreAvis(cellule);
-    if (!liens.length || !descendre) return;
-    // Les boutons débordent de la rangée quand la cellule est étroite : c'est leur étendue qui
-    // compte, pas le cadre de la rangée, borné à la largeur de son conteneur.
-    const zones = [...rangee.children].map(b => b.getBoundingClientRect());
-    if (!liens.some(l => { const r = l.getBoundingClientRect(); return zones.some(z => seChevauchent(z, r)); })) return;
-    aDeplacer.push({ cellule, largeur, liens, descendre });
-  });
-
-  // Écriture : les déplacements.
-  aDeplacer.forEach(({ cellule, largeur, liens, descendre }) => {
-    const souvenirs = liens.map(el => ({ el, parent: el.parentNode, suivant: el.nextSibling }));
-    let precedent = descendre;
-    liens.forEach(el => {
-      el.style.marginLeft = '4px';
-      precedent.insertAdjacentElement('afterend', el);
-      precedent = el;
-    });
-    liensDeplaces.set(cellule, { largeur, liens: souvenirs });
   });
 }
 
