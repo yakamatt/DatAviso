@@ -1,5 +1,9 @@
 # Changelog — DatAviso
 
+## v2.33.2 — 2026-11-25
+- **Correctif : plus de boutons d'avis sur la page de validation de plan** (#110). Sur les pages dont l'adresse commence par `https://aviso2.bureauveritas.com/verifications/edit/`, les menus déroulants restent ceux d'Aviso, quel que soit le réglage « Boutons d'avis » : l'extension y reconnaissait des menus aux options d'avis et les masquait derrière ses boutons. Ailleurs sur Aviso, rien ne change. Si Aviso arrive sur cette page sans la recharger, les boutons déjà posés sont retirés et les menus réaffichés
+- Aucune action nouvelle, donc aucun compteur ; `Code.gs` ne change pas
+
 ## v2.33.1 — 2026-11-25
 - **Le lien Légifrance de la trame HAND se désactive** : Paramètres avancés > Liens réglementaires, case « Accessibilité ERP neufs, trame HAND », cochée par défaut. Elle s'applique aussitôt aux onglets Aviso ouverts. HAND n'a que la source Légifrance (l'arrêté du 20 avril 2017)
 - **Statistiques** : la case est comptée dans ses deux sens (« HAND, lien Légifrance désactivé / réactivé »)
