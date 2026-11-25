@@ -28,6 +28,9 @@ function load(ouverture = false) {
     document.getElementById('lien-sharepoint').checked = s.lienSharepoint !== false;
     document.getElementById('lien-explorateur').checked = s.lienExplorateur !== false;
     document.getElementById(`mode-avis-${modeAvis(s)}`).checked = true;
+    Object.entries(sourcesReglementaires(s)).forEach(([nom, actif]) => {
+      document.getElementById('source' + nom).checked = actif;
+    });
     document.getElementById('sauvegarde-clausier').checked = s.sauvegardeClausier !== false;
     document.getElementById('statistiques-utilisation').checked = s.statistiquesUtilisation !== false;
     document.getElementById('sheet-url').value = s.sheetUrl || '';
@@ -555,6 +558,31 @@ document.getElementById('statistiques-utilisation').addEventListener('change', (
   .forEach(([id, cle]) => {
     document.getElementById(id).addEventListener('change', (e) => updateSyncSettings({ [cle]: e.target.checked }));
   });
+
+// Sources réglementaires : pour chaque trame, sitesecurite.com et Légifrance, chacune sa case et
+// sa clé (sourceErpLegifrance…), actives par défaut. Même lecture que content.js, qui retire et
+// repose aussitôt les icônes des onglets Aviso ouverts. Chaque case est comptée dans ses deux
+// sens (reglage_source_<trame>_<source>_off / _on, voir STATS_CLES) : seul le sens part.
+const TRAMES_REGLEMENTAIRES = ['Erp', 'Hab', 'BupIncendie', 'BupAcces'];
+const SOURCES_REGLEMENTAIRES_NOMS = ['Sitesecurite', 'Legifrance'];
+function sourcesReglementaires(s) {
+  const sources = {};
+  for (const trame of TRAMES_REGLEMENTAIRES) {
+    for (const source of SOURCES_REGLEMENTAIRES_NOMS) {
+      sources[trame + source] = s['source' + trame + source] !== false;
+    }
+  }
+  return sources;
+}
+// "BupIncendie" -> "bup_incendie"
+const cleStatistique = (nom) => nom.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
+TRAMES_REGLEMENTAIRES.forEach(trame => SOURCES_REGLEMENTAIRES_NOMS.forEach(source => {
+  const cle = 'source' + trame + source;
+  document.getElementById(cle).addEventListener('change', (e) => {
+    updateSyncSettings({ [cle]: e.target.checked });
+    compterUsage(`reglage_source_${cleStatistique(trame)}_${cleStatistique(source)}_${e.target.checked ? 'on' : 'off'}`);
+  });
+}));
 
 // Boutons d'avis : deux choix exclusifs (boutons radio), une seule clé. Même lecture que
 // content.js, qui applique le choix aussitôt sur les onglets Aviso ouverts. Chaque choix a son

@@ -21,7 +21,8 @@ jamais avoir « testé », dis ce que tu as vérifié et comment.
 | `content.js` | Expansion de texte sur toute page **et** toute l'intégration Aviso, fenêtre d'édition du Clausier Personnel comprise (le plus gros fichier : ~1 150 lignes) |
 | `imported-data.js` | Parseur des données « DatAviso AI » (fichier `.txt`) |
 | `clausier-fichiers.js` | Import/export du Clausier Personnel en `.xlsx` et `.csv`, zip et XML écrits à la main |
-| `sitesecurite-articles.js` | Table des articles ERP → URL sitesecurite.com |
+| `sitesecurite-articles.js` | Tables des articles ERP, Habitation et code du travail → URL sitesecurite.com |
+| `legifrance-articles.js` | Tables des articles HAND, ERP, Habitation et code du travail → URL Légifrance (identifiants relevés, contrôlés par empreinte) |
 | `background.js` | Service worker : synchro Sheets, sauvegarde du Clausier Personnel, statistiques d'utilisation, ouverture du tutoriel, alarmes |
 | `options.js/html/css` | Page Paramètres : Clausier Personnel, DatAviso AI, paramètres avancés |
 | `popup.js/html/css` | Popup de l'icône : lien du tutoriel, liens vers les deux clausiers, import DatAviso AI, formulaire de retour, partage |
@@ -91,13 +92,18 @@ Les icônes s'insèrent dans la cellule « Dispositions réalisées », dans l'o
 
 `AVISO_ADD_CLASS` (grise, « + ») **ou** `AVISO_LOCAL_CLASS` (jaune, Clausier Personnel) →
 `AVISO_EDIT_CLASS` (crayon jaune) → `AVISO_ICON_CLASS` (bleue, Clausier Commun) →
-`AVISO_LAW_CLASS` (sitesecurite) → `AVISO_IMPORT_CLASS` (verte, DatAviso AI)
+`AVISO_SITESECURITE_CLASS` → `AVISO_LEGIFRANCE_CLASS` → `AVISO_IMPORT_CLASS` (verte, DatAviso AI)
 
 - Le « + » et l'icône jaune occupent la même place et ne coexistent jamais : le « + » n'apparaît
   que sans snippet personnel, même si un snippet commun existe.
 - L'ordre tient parce que `placerIcone` pose chaque icône en `afterend` de la plus proche
   précédente déjà présente, jamais à une position absolue : les données arrivent dans un ordre
   quelconque. Une nouvelle icône s'ajoute dans `AVISO_ORDER`, pas par un enchaînement à la main.
+- **Liens réglementaires** (`liensReglementairesLigne`) : une icône par source, chacune réglable par
+  trame (`source<Trame><Source>`, `sourcesReglementaires()`, même lecture dans content.js et
+  options.js). BUP reconnu au numéro « R.42xx-n » quelle que soit la trame, ERP au code, Habitation
+  aux lignes « Art. N » d'une trame `SH-…` (`articlesHabParLigne`, arrêtée au premier titre
+  « TRAVAUX », qui relève d'autres textes). HAND : Légifrance seul, sans réglage.
 - La corbeille (`AVISO_CLEAR_CLASS`) est hors de cet ordre : elle flotte au bord droit, sur
   **toutes** les lignes, y compris sans code de Référentiel.
 - Quand une source change (`snippets`, `localSnippets`, `importedArticles`), `retirerIconesAviso`

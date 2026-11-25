@@ -327,6 +327,8 @@ code {
 }
 .tuile img, .tuile svg { width: 16px; height: 16px; display: block; }
 .tuile.corbeille { color: #8a8f99; }
+/* Liens réglementaires : les deux sources (sitesecurite, Légifrance) dans une même tuile. */
+.tuile.double { width: auto; gap: 3px; padding: 0 3px; }
 /* Boutons d'avis : reprend le bouton plein posé sur Aviso (content.js, AVIS_STYLES). */
 .tuile.avis { width: auto; padding: 0 3px; }
 .pastille-avis { padding: 0 5px; border-radius: 10px; background: #2e7d32; color: #fff; font: 600 10px/16px Arial, sans-serif; }
