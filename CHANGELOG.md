@@ -1,5 +1,10 @@
 # Changelog — DatAviso
 
+## v2.33.1 — 2026-11-25
+- **Le lien Légifrance de la trame HAND se désactive** : Paramètres avancés > Liens réglementaires, case « Accessibilité ERP neufs, trame HAND », cochée par défaut. Elle s'applique aussitôt aux onglets Aviso ouverts. HAND n'a que la source Légifrance (l'arrêté du 20 avril 2017)
+- **Statistiques** : la case est comptée dans ses deux sens (« HAND, lien Légifrance désactivé / réactivé »)
+- ⚠️ **`Code.gs` est à recopier dans l'éditeur Apps Script et à enregistrer** (libellés des deux compteurs). Aucun déploiement en « Nouvelle version » n'est nécessaire
+
 ## v2.33.0 — 2026-11-25
 - **Deux sources réglementaires par ligne : sitesecurite.com et Légifrance** (#106). Sur Aviso, l'icône réglementaire devient deux icônes côte à côte, chacune ouvrant l'article de la ligne dans un nouvel onglet. Trames couvertes :
   - **ERP** : le lien sitesecurite existant, plus Légifrance (règlement de sécurité du 25 juin 1980, 1 189 articles en vigueur) ;

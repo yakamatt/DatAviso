@@ -17,10 +17,16 @@ let LIENS_AFFAIRE = { sgo: true, sharepoint: true, explorateur: true };
 // exclusifs : un menu n'est jamais masqué sans boutons pour le remplacer.
 let BOUTONS_AVIS = true;
 // Sources réglementaires (Paramètres avancés) : pour chaque trame, sitesecurite.com et Légifrance
-// se règlent séparément, tous actifs par défaut. Clés source<Trame><Source> (sourceErpLegifrance…),
+// se règlent séparément, tous actifs par défaut (HAND : Légifrance seul). Clés source<Trame><Source> (sourceErpLegifrance…),
 // lues par sourcesReglementaires() — même lecture dans options.js.
-const TRAMES_REGLEMENTAIRES = ['Erp', 'Hab', 'BupIncendie', 'BupAcces'];
-const SOURCES_REGLEMENTAIRES_NOMS = ['Sitesecurite', 'Legifrance'];
+// HAND n'a que Légifrance (l'arrêté du 20 avril 2017 n'est pas sur sitesecurite).
+const SOURCES_PAR_TRAME = {
+  Erp: ['Sitesecurite', 'Legifrance'],
+  Hab: ['Sitesecurite', 'Legifrance'],
+  BupIncendie: ['Sitesecurite', 'Legifrance'],
+  BupAcces: ['Sitesecurite', 'Legifrance'],
+  Hand: ['Legifrance'],
+};
 let SOURCES_REGLEMENTAIRES = sourcesReglementaires({});
 let pendingTimeoutId = null;
 
@@ -105,8 +111,8 @@ function modeAvis(s) {
 // { ErpSitesecurite: true, ErpLegifrance: true, … } : un réglage absent vaut "activé".
 function sourcesReglementaires(s) {
   const sources = {};
-  for (const trame of TRAMES_REGLEMENTAIRES) {
-    for (const source of SOURCES_REGLEMENTAIRES_NOMS) {
+  for (const [trame, noms] of Object.entries(SOURCES_PAR_TRAME)) {
+    for (const source of noms) {
       sources[trame + source] = s['source' + trame + source] !== false;
     }
   }
@@ -1695,10 +1701,10 @@ function scanAvisoTable() {
 
     liensReglementairesLigne(refCell.textContent, refCode, articlesHab.get(tr))
       .forEach(lien => insertAvisoLawLink(container, lien));
-    // Trame HAND : l'arrêté du 20 avril 2017, sur Légifrance seulement et sans réglage.
+    // Trame HAND : l'arrêté du 20 avril 2017, sur Légifrance seulement (case sourceHandLegifrance).
     const numeroPmr = articlesPmr.get(tr);
     const urlPmr = numeroPmr && legifranceUrlForArticlePmr(numeroPmr);
-    if (urlPmr) {
+    if (urlPmr && SOURCES_REGLEMENTAIRES.HandLegifrance) {
       insertAvisoLawLink(container, {
         ...SOURCE_LEGIFRANCE,
         url: urlPmr,
