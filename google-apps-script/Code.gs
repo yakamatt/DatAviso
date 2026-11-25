@@ -699,6 +699,8 @@ const STATS_LIBELLES = {
   reglage_source_bup_acces_sitesecurite_on: 'Paramètres : BUP accessibilité, lien sitesecurite réactivé',
   reglage_source_bup_acces_legifrance_off: 'Paramètres : BUP accessibilité, lien Légifrance désactivé',
   reglage_source_bup_acces_legifrance_on: 'Paramètres : BUP accessibilité, lien Légifrance réactivé',
+  reglage_source_hand_legifrance_off: 'Paramètres : HAND, lien Légifrance désactivé',
+  reglage_source_hand_legifrance_on: 'Paramètres : HAND, lien Légifrance réactivé',
   lien_sgo: 'Lien SGO',
   lien_sharepoint: 'Lien SharePoint',
   lien_explorateur: 'Lien Explorateur',

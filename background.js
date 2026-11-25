@@ -258,6 +258,7 @@ const STATS_CLES = [
   'reglage_source_hab_sitesecurite_off', 'reglage_source_hab_sitesecurite_on', 'reglage_source_hab_legifrance_off', 'reglage_source_hab_legifrance_on',
   'reglage_source_bup_incendie_sitesecurite_off', 'reglage_source_bup_incendie_sitesecurite_on', 'reglage_source_bup_incendie_legifrance_off', 'reglage_source_bup_incendie_legifrance_on',
   'reglage_source_bup_acces_sitesecurite_off', 'reglage_source_bup_acces_sitesecurite_on', 'reglage_source_bup_acces_legifrance_off', 'reglage_source_bup_acces_legifrance_on',
+  'reglage_source_hand_legifrance_off', 'reglage_source_hand_legifrance_on',
   'lien_sgo', 'lien_sharepoint', 'lien_explorateur',
   'import_dataviso', 'clausier_import', 'clausier_export',
   'popup', 'parametres', 'tutoriel'
