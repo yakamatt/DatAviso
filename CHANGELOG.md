@@ -1,5 +1,18 @@
 # Changelog — DatAviso
 
+## v2.33.0 — 2026-11-25
+- **Deux sources réglementaires par ligne : sitesecurite.com et Légifrance** (#106). Sur Aviso, l'icône réglementaire devient deux icônes côte à côte, chacune ouvrant l'article de la ligne dans un nouvel onglet. Trames couvertes :
+  - **ERP** : le lien sitesecurite existant, plus Légifrance (règlement de sécurité du 25 juin 1980, 1 189 articles en vigueur) ;
+  - **Habitation** (SH-IN, SH-EL, SH-TB) : arrêté du 31 janvier 1986, lignes « Art. N », sur les deux sites ;
+  - **BUP incendie** : code du travail, lignes R.4216 et R.4227, sur les deux sites. Les renvois à l'arrêté du 5 août 1992 ouvrent l'article R. de la ligne. Les coquilles « R.4727-33, 37, 38 » du référentiel Aviso sont lues R.4227 ;
+  - **BUP accessibilité** : code du travail, R.4214-26 à R.4214-28, sur les deux sites.
+- **Paramètres avancés > Liens réglementaires** : une case sitesecurite et une case Légifrance par trame, toutes cochées par défaut. Le changement s'applique aussitôt aux onglets Aviso ouverts. La trame HAND garde son lien Légifrance vers l'arrêté du 20 avril 2017, sans réglage
+- Aucune permission nouvelle : ce sont de simples liens, l'extension ne contacte ni Légifrance ni sitesecurite. Les identifiants Légifrance ont été relevés le 2026-11-25 et contrôlés par empreinte (voir l'en-tête de `legifrance-articles.js`)
+- À savoir : R.4214-26 et 27 sont abrogés depuis le 1er octobre 2026 (décret n° 2026-531), et les R.4216 le sont par le décret n° 2025-1100 (encore en vigueur au 25 novembre 2026). Légifrance affiche ces articles avec leur statut
+- **Statistiques** : chaque case est comptée dans ses deux sens (16 compteurs, « Paramètres : ERP, lien Légifrance désactivé »…). Les clics restent comptés par source (« lien sitesecurite », « lien Légifrance »). Même nature d'usage : PRIVACY.md ne change pas
+- Tutoriel : la maquette Aviso montre les deux icônes, et la légende cite les trames couvertes
+- ⚠️ **`Code.gs` est à recopier dans l'éditeur Apps Script et à enregistrer** (libellés des 16 compteurs). Aucun déploiement en « Nouvelle version » n'est nécessaire
+
 ## v2.32.3 — 2026-11-24
 - **Rangement interne des boutons d'avis, sans aucun changement visible.** Couleur et libellé abrégé d'un avis tenaient dans deux tables séparées, qu'il fallait penser à modifier ensemble : elles n'en font plus qu'une (`AVIS_STYLES`). La famille d'un menu — avis ou conformité — est désormais retenue par menu au lieu d'être recalculée pour chaque liste déroulante de la page à chaque scan, la signature de ses options servant de clé pour qu'un menu encore vide ne reste pas classé définitivement. La plage de signes diacritiques de `cleAvis` est écrite en points de code (`\u0300-\u036f`) et non en caractères combinants, qu'un outil normalisant l'Unicode pouvait altérer sans que rien ne le signale
 - Équivalence vérifiée sur du code extrait du fichier : normalisation identique sur 18 libellés, table unique fidèle sur les 8 avis, et classement inchangé — y compris le reclassement d'un menu dont les options arrivent après le premier scan

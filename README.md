@@ -26,8 +26,13 @@ Remplace automatiquement un texte court (ex: `;sig`) par un texte prédéfini, d
   - l'icône **jaune** **ajoute** le contenu du snippet du Clausier Personnel, et l'affiche au survol pour le relire avant de cliquer. Le **crayon jaune** à sa droite ouvre une fenêtre d'édition par-dessus la page pour le modifier ou le supprimer, sans quitter Aviso ;
   - à leur place, sur une ligne **sans** snippet personnel, l'icône **"+"** (grise) crée ce snippet : la fenêtre d'édition s'ouvre avec un déclencheur qui reprend le Référentiel (`/GN13`) et un contenu prérempli avec **le texte déjà saisi dans "Dispositions réalisées"**. Une fois le snippet enregistré, il est **ajouté aussitôt à la cellule**, sans doublon : tout le snippet si la cellule était vide, ou seulement la suite si vous avez complété le texte prérempli (rien si vous l'avez réécrit). Le "+" laisse ensuite la place à l'icône jaune et au crayon ;
   - l'icône **bleue** **ajoute** le contenu du snippet du Clausier Commun, avec le même aperçu au survol. Elle n'apparaît que si le code correspond au déclencheur d'un snippet du Google Sheets ;
-  - l'icône **sitesecurite.com** ouvre dans un nouvel onglet l'article du règlement de sécurité ERP correspondant, ancré directement sur l'article visé. Elle s'affiche dès que le code est un article ERP connu (voir `sitesecurite-articles.js`), **y compris sur les lignes sans snippet** — consulter le texte reste utile quand il n'y a rien à insérer ;
-  - sur la trame **HAND** (accessibilité PMR), la même icône ouvre sur **Légifrance** l'article de l'arrêté du 20 avril 2017 auquel la rubrique se rattache (`Art. 7.1` ouvre l'article 7-1). Elle s'affiche sur les lignes « Art. N » du référentiel, avec ou sans snippet (voir `legifrance-articles.js`) ;
+  - les **liens réglementaires** ouvrent dans un nouvel onglet l'article de la ligne, sur **sitesecurite.com** et sur **Légifrance**, deux icônes côte à côte. Ils s'affichent dès que la ligne désigne un article connu, **y compris sur les lignes sans snippet** — consulter le texte reste utile quand il n'y a rien à insérer. Trames couvertes (tables dans `sitesecurite-articles.js` et `legifrance-articles.js`) :
+    - **ERP** (SEI-…) : règlement de sécurité du 25 juin 1980, reconnu au code d'article (`GN 4`, `CH 12-1`) ;
+    - **Habitation** (SH-IN, SH-EL, SH-TB…) : arrêté du 31 janvier 1986, lignes « Art. N » (`Art. 29 bis`, `Art. 78-1`). Les parties « TRAVAUX… » de SH-IN, qui relèvent d'autres textes, n'ont pas de lien ;
+    - **BUP incendie** : code du travail, lignes `R.4216-…` et `R.4227-…`, quelle que soit la trame ; une ligne qui cite aussi l'arrêté du 5 août 1992 renvoie à l'article R. ;
+    - **BUP accessibilité** : code du travail, lignes `R.4214-26` à `R.4214-28`.
+
+    Chaque source se règle par trame dans Paramètres avancés > Liens réglementaires (toutes actives par défaut). Sur la trame **HAND** (accessibilité PMR), le lien Légifrance ouvre l'article de l'arrêté du 20 avril 2017 auquel la rubrique se rattache (`Art. 7.1` ouvre l'article 7-1), sans réglage ;
   - l'icône **verte** ajoute les données **DatAviso AI** de cet article (voir ci-dessous), et affiche au survol le texte qui sera inséré. Elle n'apparaît que si un article importé porte le même code.
 
   Au-dessus du **menu déroulant d'avis** (Aucun, Favorable, Observation, Hors mission, À préciser, Sans objet), une rangée de **boutons colorés**, aux libellés abrégés pour tenir sur une ligne (Aucun, Fav., Obs., H.M., À préc., S.O. ; libellé complet au survol), choisit l'avis d'un clic : Favorable en vert, Observation en orange, À préciser en bleu, les autres en gris. Le bouton de l'avis en cours est plein. Le menu fait foi : les boutons le pilotent et suivent son état. Les menus de **conformité** (Aucun, Conforme, Non conforme, Hors mission, Sans objet) reçoivent la même rangée : Conf. en vert, Non conf. en orange, les autres en gris. Par défaut, les boutons **remplacent** le menu, qui est masqué (il reste dans la page et Aviso enregistre l'avis comme avant). Paramètres avancés > Boutons d'avis permet de revenir au menu déroulant d'origine, sans bouton.
@@ -159,6 +164,7 @@ Les onglets `Local_Snippets_Backup`, `Statistiques`, `Historique` et `Revue_Trai
 Accessibles via le bouton "⚙️ Paramètres avancés" en bas de la page Options :
 - **Fréquence d'actualisation des données** : intervalle entre deux récupérations automatiques depuis le Google Sheet (minutes, 60 par défaut)
 - **Liens vers l'affaire** : une case par lien (SGO, SharePoint, Explorateur Windows), tous activés par défaut
+- **Liens réglementaires** : pour chaque trame (ERP, Habitation, BUP incendie, BUP accessibilité), une case sitesecurite.com et une case Légifrance, toutes cochées par défaut
 - **Boutons d'avis** : deux choix exclusifs pour les menus d'avis et de conformité d'Aviso, « Remplacer le menu déroulant par des boutons » (par défaut, le menu est masqué) ou « Utiliser le menu déroulant d'origine (sans bouton) »
 - **Temporisation avant expansion** : délai (ms) après la fin de la frappe avant remplacement (évite qu'un mot plus long contenant un déclencheur ne s'expanse par erreur)
 - **Mise à jour de l'extension** : la version installée. Chrome installe les mises à jour depuis le Chrome Web Store, sans action de votre part
@@ -229,8 +235,8 @@ snippet-expander/
 ├── manifest.json          # Configuration de l'extension (Manifest V3)
 ├── background.js          # Récupération Google Sheets, sauvegarde du Clausier Personnel, statistiques, tutoriel, alarmes
 ├── content.js              # Détection, temporisation et remplacement du texte + intégration Aviso
-├── sitesecurite-articles.js # Table code d'article ERP -> page sitesecurite.com (générée, cf. en-tête)
-├── legifrance-articles.js # Table article de la trame HAND -> article de l'arrêté du 20 avril 2017 sur Légifrance
+├── sitesecurite-articles.js # Tables article ERP, Habitation, code du travail -> page sitesecurite.com (générées, cf. en-tête)
+├── legifrance-articles.js # Tables article HAND, ERP, Habitation, code du travail -> article sur Légifrance (relevées, cf. en-tête)
 ├── imported-data.js         # Analyse du texte importé (données de dossier par article)
 ├── clausier-fichiers.js     # Import/export du Clausier Personnel (.xlsx, .csv), sans dépendance
 ├── popup.html/css/js       # Popup de l'icône (barre d'outils) : clausiers, DatAviso AI, avis, Paramètres

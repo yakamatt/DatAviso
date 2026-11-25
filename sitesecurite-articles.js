@@ -85,3 +85,57 @@ function sitesecuriteUrlForCode(refCode) {
   }
   return null;
 }
+
+// ---------------------------------------------------------------------------------------------
+// Trames Habitation et BUP (issue #106)
+//
+// Même découpage en pages groupées, relevé le 2026-11-25 dans le même sitemap, ancres comprises
+// (les id de chaque page). Bornes "début-fin" comme plus haut.
+//
+// Arrêté du 31 janvier 1986 (habitation) : /contenu/_hab/hab/h<début sur 3 chiffres>[a<fin>].php,
+// ancre HAB<numéro sur 3 chiffres>, suffixe "b" pour un article bis (HAB029b), "T1" pour 78-1.
+const SITESECURITE_HAB =
+  '1-2,3-4,5,6,7,8-9,10,11-14,15,16,17,18,19-21,22,23,24,25-29,30,31-38,39,40-43,44-45,46-48,' +
+  '49,50-56,57,58,59-63,64,65,66-71,72,73-76,77-80,81,82-83,84,85-86,87,88,89,90,91-92,93-94,' +
+  '95,96,97,98,99,100-104,105,106-107,108';
+
+// Code du travail : /contenu/_codes/cdt/r<chapitre>_<début sur 2 chiffres>[a<fin>].php, ancre
+// R<chapitre>T<numéro> (R4216T2-1 pour R4216-2-1, sur la page de R4216-2).
+const SITESECURITE_CDT = {
+  4214: '1-8,9-17,18-21,22-25,26-28',
+  4216: '1-4,5-12,13-16,17-20,21-23,24-29,30,31,32-34',
+  4227: '1-3,4-14,15-20,21-27,28-33,34-36,37-41,42-54,55-57',
+};
+
+// Page qui contient l'article "numero" (entier) dans une liste de bornes, ou null.
+function sitesecuritePage(bornes, numero) {
+  for (const range of bornes.split(',')) {
+    const [start, end] = range.includes('-') ? range.split('-').map(Number) : [Number(range), Number(range)];
+    if (numero >= start && numero <= end) return { start, end };
+  }
+  return null;
+}
+
+// numero : "27", "29b", "78-1" (mêmes clés que la table Légifrance de l'habitation).
+function sitesecuriteUrlForArticleHab(numero) {
+  const m = /^(\d+)(b|-1)?$/.exec(String(numero || ''));
+  if (!m) return null;
+  const n = parseInt(m[1], 10);
+  const page = sitesecuritePage(SITESECURITE_HAB, n);
+  if (!page) return null;
+  const pad = (x) => String(x).padStart(3, '0');
+  const fichier = 'h' + pad(page.start) + (page.end !== page.start ? 'a' + pad(page.end) : '');
+  const ancre = 'HAB' + pad(n) + (m[2] === 'b' ? 'b' : m[2] === '-1' ? 'T1' : '');
+  return `https://sitesecurite.com/contenu/_hab/hab/${fichier}.php?id=${ancre}`;
+}
+
+// chapitre : "4216" ; numero : "2-1".
+function sitesecuriteUrlForArticleCdt(chapitre, numero) {
+  const bornes = SITESECURITE_CDT[chapitre];
+  if (!bornes) return null;
+  const page = sitesecuritePage(bornes, parseInt(numero, 10));
+  if (!page) return null;
+  const pad = (x) => String(x).padStart(2, '0');
+  const fichier = `r${chapitre}_${pad(page.start)}` + (page.end !== page.start ? 'a' + pad(page.end) : '');
+  return `https://sitesecurite.com/contenu/_codes/cdt/${fichier}.php?id=R${chapitre}T${numero}`;
+}

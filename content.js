@@ -16,6 +16,12 @@ let LIENS_AFFAIRE = { sgo: true, sharepoint: true, explorateur: true };
 // boutons, le menu étant alors masqué (par défaut), ou laissés d'origine, sans bouton. Deux choix
 // exclusifs : un menu n'est jamais masqué sans boutons pour le remplacer.
 let BOUTONS_AVIS = true;
+// Sources réglementaires (Paramètres avancés) : pour chaque trame, sitesecurite.com et Légifrance
+// se règlent séparément, tous actifs par défaut. Clés source<Trame><Source> (sourceErpLegifrance…),
+// lues par sourcesReglementaires() — même lecture dans options.js.
+const TRAMES_REGLEMENTAIRES = ['Erp', 'Hab', 'BupIncendie', 'BupAcces'];
+const SOURCES_REGLEMENTAIRES_NOMS = ['Sitesecurite', 'Legifrance'];
+let SOURCES_REGLEMENTAIRES = sourcesReglementaires({});
 let pendingTimeoutId = null;
 
 // Déclarés avant loadSnippets() car référencés depuis son callback : chrome.storage est
@@ -23,7 +29,9 @@ let pendingTimeoutId = null;
 // ne les a pas atteintes — les placer ici évite toute fragilité d'ordre d'exécution.
 const AVISO_HOSTNAME = 'aviso2.bureauveritas.com';
 const AVISO_ICON_CLASS = 'snippet-expander-aviso-icon';
-const AVISO_LAW_CLASS = 'snippet-expander-aviso-law';
+// Liens réglementaires : deux icônes, une par source, côte à côte.
+const AVISO_SITESECURITE_CLASS = 'snippet-expander-aviso-sitesecurite';
+const AVISO_LEGIFRANCE_CLASS = 'snippet-expander-aviso-legifrance';
 const AVISO_IMPORT_CLASS = 'snippet-expander-aviso-import';
 const AVISO_ADD_CLASS = 'snippet-expander-aviso-add';
 const AVISO_LOCAL_CLASS = 'snippet-expander-aviso-local';
@@ -39,7 +47,7 @@ const AVISO_AVIS_CLASS = 'snippet-expander-aviso-avis';
 // place et ne coexistent jamais : le "+" n'apparaît que sur une ligne sans snippet local.
 const AVISO_ORDER = [
   AVISO_ADD_CLASS, AVISO_LOCAL_CLASS, AVISO_EDIT_CLASS,
-  AVISO_ICON_CLASS, AVISO_LAW_CLASS, AVISO_IMPORT_CLASS
+  AVISO_ICON_CLASS, AVISO_SITESECURITE_CLASS, AVISO_LEGIFRANCE_CLASS, AVISO_IMPORT_CLASS
 ];
 
 function isAvisoSite() {
@@ -76,6 +84,11 @@ function appliquerReglages(s) {
     explorateur: s.lienExplorateur !== false
   };
   if (JSON.stringify(LIENS_AFFAIRE) !== avant) aRetirer.push(AVISO_LIENS_CLASS);
+  const avantSources = JSON.stringify(SOURCES_REGLEMENTAIRES);
+  SOURCES_REGLEMENTAIRES = sourcesReglementaires(s);
+  if (JSON.stringify(SOURCES_REGLEMENTAIRES) !== avantSources) {
+    aRetirer.push(AVISO_SITESECURITE_CLASS, AVISO_LEGIFRANCE_CLASS);
+  }
   const boutonsAvis = modeAvis(s) === 'boutons';
   if (boutonsAvis !== BOUTONS_AVIS) aRetirer.push(AVISO_AVIS_CLASS);
   BOUTONS_AVIS = boutonsAvis;
@@ -87,6 +100,17 @@ function appliquerReglages(s) {
 function modeAvis(s) {
   if (s.modeAvis === 'boutons' || s.modeAvis === 'menu') return s.modeAvis;
   return s.boutonsAvis === false ? 'menu' : 'boutons';
+}
+
+// { ErpSitesecurite: true, ErpLegifrance: true, … } : un réglage absent vaut "activé".
+function sourcesReglementaires(s) {
+  const sources = {};
+  for (const trame of TRAMES_REGLEMENTAIRES) {
+    for (const source of SOURCES_REGLEMENTAIRES_NOMS) {
+      sources[trame + source] = s['source' + trame + source] !== false;
+    }
+  }
+  return sources;
 }
 
 function reglagesModifies(s) {
@@ -580,18 +604,18 @@ function insertAvisoEditIcon(container, snippet) {
   placerIcone(container, btn);
 }
 
-// Lien vers un texte réglementaire, ouvert dans un nouvel onglet : sitesecurite.com (ERP
-// sécurité incendie) ou Légifrance (trame HAND). Indépendant du bouton d'insertion : il ne
-// dépend que de la ligne, et s'affiche donc aussi sur les lignes sans snippet (consulter
-// l'article reste utile même quand il n'y a rien à insérer). Un vrai <a> (plutôt qu'un
-// window.open au clic) pour conserver les usages du navigateur : clic milieu, Ctrl+clic,
-// "ouvrir dans un nouvel onglet". Une seule icône de ce type par ligne (AVISO_LAW_CLASS).
-// lien = { url, titre, icone, statistique }
+// Lien vers un texte réglementaire, ouvert dans un nouvel onglet : sitesecurite.com ou
+// Légifrance, une icône par source (AVISO_SITESECURITE_CLASS, AVISO_LEGIFRANCE_CLASS), côte à
+// côte. Indépendant du bouton d'insertion : il ne dépend que de la ligne, et s'affiche donc aussi
+// sur les lignes sans snippet (consulter l'article reste utile même quand il n'y a rien à
+// insérer). Un vrai <a> (plutôt qu'un window.open au clic) pour conserver les usages du
+// navigateur : clic milieu, Ctrl+clic, "ouvrir dans un nouvel onglet".
+// lien = { classe, url, titre, icone, statistique }
 function insertAvisoLawLink(container, lien) {
-  if (container.querySelector('.' + AVISO_LAW_CLASS)) return;
+  if (container.querySelector('.' + lien.classe)) return;
 
   const link = document.createElement('a');
-  link.className = AVISO_LAW_CLASS;
+  link.className = lien.classe;
   link.href = lien.url;
   link.target = '_blank';
   link.rel = 'noopener noreferrer';
@@ -612,6 +636,94 @@ function insertAvisoLawLink(container, lien) {
   });
 
   placerIcone(container, link);
+}
+
+const SOURCE_SITESECURITE = {
+  classe: AVISO_SITESECURITE_CLASS, site: 'sitesecurite.com',
+  icone: 'icons/sitesecurite32.png', statistique: 'aviso_sitesecurite'
+};
+const SOURCE_LEGIFRANCE = {
+  classe: AVISO_LEGIFRANCE_CLASS, site: 'Légifrance',
+  icone: 'icons/legifrance32.png', statistique: 'aviso_legifrance'
+};
+
+// Liens réglementaires d'une ligne, selon sa trame et les sources activées pour elle (issue #106).
+// Renvoie [{ classe, url, titre, icone, statistique }], vide si la ligne ne désigne aucun article.
+//   - BUP (code du travail) : reconnu au numéro lui-même, « R.4216-24 », « R.4227-6 », quelle que
+//     soit la trame. R4214-26 à 28 relèvent de l'accessibilité, R4216 et R4227 de l'incendie.
+//     Seul le premier article de la ligne compte (« R.4216-6 et R.4227-4 » -> R4216-6), et une
+//     ligne qui cite aussi l'arrêté du 5 août 1992 renvoie à l'article R. du code.
+//   - ERP : code d'article du règlement de sécurité (GN4, CO24…).
+//   - Habitation : numéro « Art. N » relevé par articlesHabParLigne (trames SH-…).
+function liensReglementairesLigne(refText, refCode, articleHab) {
+  let trame = null, libelle = '', urlSitesecurite = null, urlLegifrance = null;
+
+  // « R.4727-33 », « R.4727-37 » : coquilles du référentiel Aviso pour R4227 (le code du travail
+  // n'a pas d'article R4727-3x), corrigées ici plutôt que de laisser ces lignes sans lien.
+  const cdt = /^\s*R\s*\.?\s*(4214|4216|4227|4727)\s*-\s*(\d+(?:-\d+)?)/.exec(refText);
+  const erp = /^([A-Z]+)(\d+(?:-\d+)?)$/.exec(refCode);
+  if (cdt) {
+    const chapitre = cdt[1] === '4727' ? '4227' : cdt[1];
+    const numero = cdt[2];
+    if (chapitre === '4214') {
+      const n = parseInt(numero, 10);
+      if (n < 26 || n > 28) return [];
+      trame = 'BupAcces';
+    } else {
+      trame = 'BupIncendie';
+    }
+    libelle = `l'article R. ${chapitre}-${numero} du code du travail`;
+    urlSitesecurite = sitesecuriteUrlForArticleCdt(chapitre, numero);
+    urlLegifrance = legifranceUrlForArticleCdt(chapitre, numero);
+  } else if (articleHab) {
+    trame = 'Hab';
+    const affiche = articleHab.replace(/b$/, ' bis');
+    libelle = `l'article ${affiche} de l'arrêté du 31 janvier 1986 (habitation)`;
+    urlSitesecurite = sitesecuriteUrlForArticleHab(articleHab);
+    urlLegifrance = legifranceUrlForArticleHab(articleHab);
+  } else if (erp) {
+    trame = 'Erp';
+    libelle = `l'article ${erp[1]} ${erp[2]} du règlement de sécurité ERP`;
+    urlSitesecurite = sitesecuriteUrlForCode(refCode);
+    urlLegifrance = legifranceUrlForCodeErp(refCode);
+  } else {
+    return [];
+  }
+
+  const liens = [];
+  if (urlSitesecurite && SOURCES_REGLEMENTAIRES[trame + 'Sitesecurite']) {
+    liens.push({ ...SOURCE_SITESECURITE, url: urlSitesecurite, titre: `Consulter ${libelle} sur sitesecurite.com` });
+  }
+  if (urlLegifrance && SOURCES_REGLEMENTAIRES[trame + 'Legifrance']) {
+    liens.push({ ...SOURCE_LEGIFRANCE, url: urlLegifrance, titre: `Consulter ${libelle} sur Légifrance` });
+  }
+  return liens;
+}
+
+// Trames Habitation (RICT b - SH-IN, SH-EL, SH-TB…) : leurs lignes « Art. N » reprennent les
+// articles de l'arrêté du 31 janvier 1986. Renvoie une Map ligne -> clé d'article ("27", "29b",
+// "78-1"), vide hors de ces trames. « Art. 12 A » -> 12, « Art. 44-45 » et « Art. 89.2 » -> 44 et
+// 89 (pas d'article 44-45 ni 89-2), « Art. 78-1 » -> 78-1.
+// Les deux dernières parties de SH-IN (« TRAVAUX EXECUTES DANS LES BATIMENTS D'HABITATION
+// EXISTANTS », « TRAVAUX DE MODIFICATION - RENOVATION DES FACADES… ») relèvent d'autres textes :
+// leur « Art 2 » n'est pas l'article 2 de l'arrêté. Plus aucun lien après un titre « TRAVAUX ».
+function articlesHabParLigne() {
+  const parLigne = new Map();
+  const titreTrame = [...document.querySelectorAll('fieldset')].some(f => /\bSH-[A-Z]+\b/.test(f.textContent));
+  if (!titreTrame) return parLigne;
+
+  for (const cellule of document.querySelectorAll('td.referentiel.content')) {
+    const texte = cellule.textContent.trim();
+    if (/^TRAVAUX\b/.test(texte)) break;
+    const m = /^Art\.?\s*(\d+)(?:\s*(bis)\b|\s*-\s*(\d+))?/i.exec(texte);
+    const tr = cellule.closest('tr');
+    if (!m || !tr) continue;
+    let cle = m[1];
+    if (m[2]) cle = m[1] + 'b';
+    else if (m[3] && LEGIFRANCE_ARTICLES_HAB[`${m[1]}-${m[3]}`]) cle = `${m[1]}-${m[3]}`;
+    parLigne.set(tr, cle);
+  }
+  return parLigne;
 }
 
 // Trame HAND (RICT b, accessibilité PMR) : seules les lignes « Art. N » du référentiel portent
@@ -1555,6 +1667,7 @@ function scanAvisoTable() {
   lierEditeursRiches();
   scanSelecteursAvis();
   const articlesPmr = articlesPmrParLigne();
+  const articlesHab = articlesHabParLigne();
   document.querySelectorAll('td.referentiel.content').forEach(refCell => {
     const tr = refCell.closest('tr');
     const dispoCell = tr && tr.querySelector('td.dispositions');
@@ -1580,22 +1693,16 @@ function scanAvisoTable() {
     const match = SNIPPETS.find(s => triggerToRefCode(s.trigger) === refCode);
     if (match) insertAvisoIcon(container, dispoCell, match);
 
-    const urlSitesecurite = sitesecuriteUrlForCode(refCode);
+    liensReglementairesLigne(refCell.textContent, refCode, articlesHab.get(tr))
+      .forEach(lien => insertAvisoLawLink(container, lien));
+    // Trame HAND : l'arrêté du 20 avril 2017, sur Légifrance seulement et sans réglage.
     const numeroPmr = articlesPmr.get(tr);
-    const urlLegifrance = numeroPmr && legifranceUrlForArticlePmr(numeroPmr);
-    if (urlSitesecurite) {
+    const urlPmr = numeroPmr && legifranceUrlForArticlePmr(numeroPmr);
+    if (urlPmr) {
       insertAvisoLawLink(container, {
-        url: urlSitesecurite,
-        titre: `Consulter le texte réglementaire ${refCode} sur sitesecurite.com`,
-        icone: 'icons/sitesecurite32.png',
-        statistique: 'aviso_sitesecurite'
-      });
-    } else if (urlLegifrance) {
-      insertAvisoLawLink(container, {
-        url: urlLegifrance,
-        titre: `Consulter l'article ${numeroPmr} de l'${LEGIFRANCE_ARRETE_PMR_TITRE} sur Légifrance`,
-        icone: 'icons/legifrance32.png',
-        statistique: 'aviso_legifrance'
+        ...SOURCE_LEGIFRANCE,
+        url: urlPmr,
+        titre: `Consulter l'article ${numeroPmr} de l'${LEGIFRANCE_ARRETE_PMR_TITRE} sur Légifrance`
       });
     }
 
