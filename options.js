@@ -563,13 +563,16 @@ document.getElementById('statistiques-utilisation').addEventListener('change', (
 // sa clé (sourceErpLegifrance…), actives par défaut. Même lecture que content.js, qui retire et
 // repose aussitôt les icônes des onglets Aviso ouverts. Chaque case est comptée dans ses deux
 // sens (reglage_source_<trame>_<source>_off / _on, voir STATS_CLES) : seul le sens part.
-// HAND n'a que Légifrance (l'arrêté du 20 avril 2017 n'est pas sur sitesecurite).
+// HAND n'a que Légifrance (l'arrêté du 20 avril 2017 n'est pas sur sitesecurite), de même que
+// l'accessibilité des logements neufs (HandHab) et des lieux de travail (HandTravail).
 const SOURCES_PAR_TRAME = {
   Erp: ['Sitesecurite', 'Legifrance'],
   Hab: ['Sitesecurite', 'Legifrance'],
   BupIncendie: ['Sitesecurite', 'Legifrance'],
   BupAcces: ['Sitesecurite', 'Legifrance'],
   Hand: ['Legifrance'],
+  HandHab: ['Legifrance'],
+  HandTravail: ['Legifrance'],
 };
 function sourcesReglementaires(s) {
   const sources = {};

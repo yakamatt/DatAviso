@@ -1,6 +1,7 @@
 // legifrance-articles.js — correspondance "article d'un référentiel Aviso" -> article de Légifrance
 //
-// Trames HAND (ci-dessous), ERP, Habitation et BUP (plus bas, issue #106).
+// Trames HAND (ci-dessous ; ses parties habitation tout en bas, issue #109), ERP, Habitation et
+// BUP (plus bas, issue #106).
 //
 // La trame HAND (RICT b, accessibilité des constructions aux personnes handicapées, neuf) suit
 // article par article l'arrêté du 20 avril 2017 relatif à l'accessibilité aux personnes
@@ -186,4 +187,56 @@ function legifranceUrlForArticleCdt(chapitre, numero) {
   }
   const table = legifranceCdt['R' + chapitre];
   return table ? adresseLegifrance(LEGIFRANCE_BASE_CODES, table[numero]) : null;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Parties logements et code du travail de la trame HAND (issue #109)
+//
+// La trame HAND d'Aviso (« RICT b - HAND ») réunit plusieurs textes, un par partie, chacune
+// ouverte par une ligne de titre de niveau 1 (« ACCESSIBILITE DES ERP ET DES IOP… NEUFS »,
+// « …DES BATIMENTS D'HABITATION COLLECTIFS ET DES MAISONS INDIVIDUELLES… », « …DES LOGEMENTS
+// DESTINES A L'OCCUPATION TEMPORAIRE OU SAISONNIERE », « …CODE DU TRAVAIL »). Les « Art. N » de
+// chaque partie renvoient à son propre texte : content.js choisit la table selon la partie.
+//
+// Articles consolidés (LEGIARTI, version en vigueur), relevés le 2026-11-25 sur Légifrance, depuis
+// la page de chaque arrêté. Contrôle : l'objet de chaque article relevé (« Dispositions relatives
+// aux escaliers des logements »…) correspond au titre de la rubrique Aviso du même numéro.
+
+// Arrêté du 24 décembre 2015 (JORFTEXT000031692481), bâtiments d'habitation collectifs et maisons
+// individuelles neufs. Aviso en reprend les articles 1 à 17 ; « Art. 6.1 Escaliers » et
+// « Art. 6.2 - Ascenseurs » sont des parties de l'article 6, qui n'a pas d'article 6-1.
+// Les articles 18 à 21 (modifications d'autres textes, entrée en vigueur) ne sont pas cités.
+const LEGIFRANCE_ARRETE_LOGEMENTS_TITRE = 'arrêté du 24 décembre 2015 (accessibilité des logements neufs)';
+const LEGIFRANCE_ARTICLES_LOGEMENTS = parseTableLegifrance(
+  '1:36657718 2:32310674 3:32310676 4:31830897 5:31830899 6:39239994 7:31830931 8:31830903 ' +
+  '9:31830933 10:31830905 11:31830907 12:31830909 13:39239989 14:39239991 15:42338834 ' +
+  '16:39239998 17:39240006'
+);
+
+// Arrêté du 14 mars 2014 (JORFTEXT000028725282), logements destinés à l'occupation temporaire ou
+// saisonnière (résidences de tourisme, étudiantes…). Aviso en reprend les articles 1 à 5
+// (« Art. 3.1 », « Art. 5.2 »… sont des parties des articles 3 et 5).
+const LEGIFRANCE_ARRETE_SAISONNIERS_TITRE = 'arrêté du 14 mars 2014 (accessibilité des logements à occupation temporaire ou saisonnière)';
+const LEGIFRANCE_ARTICLES_SAISONNIERS = parseTableLegifrance(
+  '1:28727077 2:31844363 3:28727076 4:28727080 5:28727083'
+);
+
+// Arrêté du 27 juin 1994 (JORFTEXT000000348933), lieux de travail neufs ou aménagés (pris pour
+// l'ancien article R. 235-3-18 du code du travail). Partie « …CODE DU TRAVAIL » de la trame HAND,
+// qui en reprend les articles 2 à 8 (« Art. 3.I », « Art. 3.II-1 et 2 » sont des parties de
+// l'article 3). Version initiale, jamais modifiée au relevé.
+const LEGIFRANCE_ARRETE_TRAVAIL_TITRE = 'arrêté du 27 juin 1994 (accessibilité des lieux de travail)';
+const LEGIFRANCE_ARTICLES_TRAVAIL = parseTableLegifrance(
+  '1:6679773 2:6679774 3:6679775 4:6679776 5:6679777 6:6679778 7:6679779 8:6679780'
+);
+
+// numero : "13". null hors de la table : aucun lien plutôt qu'un lien vers le mauvais article.
+function legifranceUrlForArticleLogements(numero) {
+  return adresseLegifrance(LEGIFRANCE_BASE_LODA, LEGIFRANCE_ARTICLES_LOGEMENTS[String(numero || '')]);
+}
+function legifranceUrlForArticleSaisonniers(numero) {
+  return adresseLegifrance(LEGIFRANCE_BASE_LODA, LEGIFRANCE_ARTICLES_SAISONNIERS[String(numero || '')]);
+}
+function legifranceUrlForArticleTravail(numero) {
+  return adresseLegifrance(LEGIFRANCE_BASE_LODA, LEGIFRANCE_ARTICLES_TRAVAIL[String(numero || '')]);
 }

@@ -19,13 +19,16 @@ let BOUTONS_AVIS = true;
 // Sources réglementaires (Paramètres avancés) : pour chaque trame, sitesecurite.com et Légifrance
 // se règlent séparément, tous actifs par défaut (HAND : Légifrance seul). Clés source<Trame><Source> (sourceErpLegifrance…),
 // lues par sourcesReglementaires() — même lecture dans options.js.
-// HAND n'a que Légifrance (l'arrêté du 20 avril 2017 n'est pas sur sitesecurite).
+// HAND n'a que Légifrance (l'arrêté du 20 avril 2017 n'est pas sur sitesecurite), de même que
+// l'accessibilité des logements neufs (HandHab) et des lieux de travail (HandTravail).
 const SOURCES_PAR_TRAME = {
   Erp: ['Sitesecurite', 'Legifrance'],
   Hab: ['Sitesecurite', 'Legifrance'],
   BupIncendie: ['Sitesecurite', 'Legifrance'],
   BupAcces: ['Sitesecurite', 'Legifrance'],
   Hand: ['Legifrance'],
+  HandHab: ['Legifrance'],
+  HandTravail: ['Legifrance'],
 };
 let SOURCES_REGLEMENTAIRES = sourcesReglementaires({});
 let pendingTimeoutId = null;
@@ -732,22 +735,77 @@ function articlesHabParLigne() {
   return parLigne;
 }
 
-// Trame HAND (RICT b, accessibilité PMR) : seules les lignes « Art. N » du référentiel portent
-// un lien vers l'article de l'arrêté du 20 avril 2017 (« Art. 7.1 » -> 7-1, « Art.7.2.II » -> 7-2).
-// Les sous-rubriques et points en dessous n'en ont pas. Renvoie une Map ligne -> numéro d'article,
-// vide hors de la trame HAND.
-function articlesPmrParLigne() {
+// Trame HAND (RICT b, accessibilité des personnes handicapées) : elle réunit plusieurs textes,
+// une partie par texte, chacune ouverte par une ligne de titre de niveau 1 (data-level="1") :
+// ERP neufs (arrêté du 20 avril 2017), logements neufs (arrêté du 24 décembre 2015), logements à
+// occupation temporaire ou saisonnière (arrêté du 14 mars 2014), lieux de travail (arrêté du
+// 27 juin 1994, partie « CODE DU TRAVAIL »). Une ligne
+// désigne sa partie par data-level1 (l'id de la ligne de titre). Seules les lignes « Art. N »
+// portent un lien, vers l'article N du texte de LEUR partie : jusqu'à la v2.33.1, tout « Art. N »
+// de la trame renvoyait à l'arrêté de 2017, y compris dans les parties logements et code du
+// travail (« Art. 11. CARACTERISTIQUES DE BASE POUR TOUS LES LOGEMENTS » ouvrait l'article 11 des
+// ERP). Une partie non reconnue (titre inconnu, partie ajoutée plus tard) n'a aucun lien.
+// Renvoie une Map ligne -> { partie, numero }, vide hors de la trame HAND.
+const PARTIES_HAND = [
+  { partie: 'Erp', titre: /\bERP\b.*\bNEUFS?\b/ },
+  { partie: 'Logements', titre: /HABITATION COLLECTIFS/ },
+  { partie: 'Saisonniers', titre: /OCCUPATION TEMPORAIRE/ },
+  { partie: 'Travail', titre: /CODE DU TRAVAIL/ },
+];
+function articlesHandParLigne() {
   const parLigne = new Map();
   // Le titre du référentiel (« RICT b - HAND - Accessibilité... ») est dans un fieldset.
   const titreTrame = [...document.querySelectorAll('fieldset')].some(f => /\bHAND\b/.test(f.textContent));
   if (!titreTrame) return parLigne;
 
+  const partieDe = new Map(); // id de la ligne de titre -> partie (ou null)
+  document.querySelectorAll('#report_builder tbody tr[data-ref-id][data-level="1"]').forEach(tr => {
+    const libelle = tr.querySelector('td.referentiel.content');
+    const texte = libelle ? libelle.textContent.toUpperCase() : '';
+    const trouvee = PARTIES_HAND.find(p => p.titre.test(texte));
+    partieDe.set(tr.dataset.refId, trouvee ? trouvee.partie : null);
+  });
+
   document.querySelectorAll('#report_builder tbody tr[data-ref-id]').forEach(tr => {
+    const partie = partieDe.get(tr.dataset.level === '1' ? tr.dataset.refId : tr.dataset.level1);
+    if (!partie) return;
     const libelle = tr.querySelector('td.referentiel.content');
     const m = libelle && /^\s*Art\.\s*(\d+)(?:\.(\d))?/.exec(libelle.textContent);
-    if (m) parLigne.set(tr, m[2] ? `${m[1]}-${m[2]}` : m[1]);
+    if (!m) return;
+    // ERP : « Art. 7.1 » -> article 7-1, « Art.7.2.II » -> 7-2. Logements : « Art. 6.1 Escaliers »
+    // et « Art. 5.2 » sont des parties des articles 6 et 5, qui n'ont pas d'article 6-1 ni 5-2.
+    const numero = partie === 'Erp' && m[2] ? `${m[1]}-${m[2]}` : m[1];
+    parLigne.set(tr, { partie, numero });
   });
   return parLigne;
+}
+
+// Lien Légifrance d'une ligne de la trame HAND, ou null. Une case par source dans les Paramètres :
+// sourceHandLegifrance (ERP neufs), sourceHandHabLegifrance (les deux parties logements),
+// sourceHandTravailLegifrance (lieux de travail).
+function lienLegifranceHand(article) {
+  if (!article) return null;
+  const { partie, numero } = article;
+  let url = null, texte = null, actif = false;
+  if (partie === 'Erp') {
+    url = legifranceUrlForArticlePmr(numero);
+    texte = LEGIFRANCE_ARRETE_PMR_TITRE;
+    actif = SOURCES_REGLEMENTAIRES.HandLegifrance;
+  } else if (partie === 'Logements') {
+    url = legifranceUrlForArticleLogements(numero);
+    texte = LEGIFRANCE_ARRETE_LOGEMENTS_TITRE;
+    actif = SOURCES_REGLEMENTAIRES.HandHabLegifrance;
+  } else if (partie === 'Saisonniers') {
+    url = legifranceUrlForArticleSaisonniers(numero);
+    texte = LEGIFRANCE_ARRETE_SAISONNIERS_TITRE;
+    actif = SOURCES_REGLEMENTAIRES.HandHabLegifrance;
+  } else if (partie === 'Travail') {
+    url = legifranceUrlForArticleTravail(numero);
+    texte = LEGIFRANCE_ARRETE_TRAVAIL_TITRE;
+    actif = SOURCES_REGLEMENTAIRES.HandTravailLegifrance;
+  }
+  if (!url || !actif) return null;
+  return { ...SOURCE_LEGIFRANCE, url, titre: `Consulter l'article ${numero} de l'${texte} sur Légifrance` };
 }
 
 // Icône verte : ajoute les données DatAviso de cet article (tous ses champs, sans la ligne de
@@ -1672,7 +1730,7 @@ function scanLiensAffaire() {
 function scanAvisoTable() {
   lierEditeursRiches();
   scanSelecteursAvis();
-  const articlesPmr = articlesPmrParLigne();
+  const articlesHand = articlesHandParLigne();
   const articlesHab = articlesHabParLigne();
   document.querySelectorAll('td.referentiel.content').forEach(refCell => {
     const tr = refCell.closest('tr');
@@ -1701,16 +1759,9 @@ function scanAvisoTable() {
 
     liensReglementairesLigne(refCell.textContent, refCode, articlesHab.get(tr))
       .forEach(lien => insertAvisoLawLink(container, lien));
-    // Trame HAND : l'arrêté du 20 avril 2017, sur Légifrance seulement (case sourceHandLegifrance).
-    const numeroPmr = articlesPmr.get(tr);
-    const urlPmr = numeroPmr && legifranceUrlForArticlePmr(numeroPmr);
-    if (urlPmr && SOURCES_REGLEMENTAIRES.HandLegifrance) {
-      insertAvisoLawLink(container, {
-        ...SOURCE_LEGIFRANCE,
-        url: urlPmr,
-        titre: `Consulter l'article ${numeroPmr} de l'${LEGIFRANCE_ARRETE_PMR_TITRE} sur Légifrance`
-      });
-    }
+    // Trame HAND : l'arrêté de la partie de la ligne, sur Légifrance seulement.
+    const lienHand = lienLegifranceHand(articlesHand.get(tr));
+    if (lienHand) insertAvisoLawLink(container, lienHand);
 
     const article = IMPORTED_ARTICLES.find(a => a.code === refCode);
     if (article) insertAvisoImportIcon(container, dispoCell, article);

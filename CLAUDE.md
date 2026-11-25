@@ -103,7 +103,9 @@ Les icônes s'insèrent dans la cellule « Dispositions réalisées », dans l'o
   trame (`source<Trame><Source>`, `sourcesReglementaires()`, même lecture dans content.js et
   options.js). BUP reconnu au numéro « R.42xx-n » quelle que soit la trame, ERP au code, Habitation
   aux lignes « Art. N » d'une trame `SH-…` (`articlesHabParLigne`, arrêtée au premier titre
-  « TRAVAUX », qui relève d'autres textes). HAND : Légifrance seul (`sourceHandLegifrance`).
+  « TRAVAUX », qui relève d'autres textes). HAND : Légifrance seul, un texte par partie de la trame (ligne de titre `data-level="1"`, rattachement par
+  `data-level1`, `articlesHandParLigne`) : ERP 2017 (`sourceHandLegifrance`), logements 2015 et saisonniers
+  2014 (`sourceHandHabLegifrance`), code du travail : lieux de travail 1994 (`sourceHandTravailLegifrance`). Jamais un « Art. N » rattaché au texte d'une autre partie.
 - La corbeille (`AVISO_CLEAR_CLASS`) est hors de cet ordre : elle flotte au bord droit, sur
   **toutes** les lignes, y compris sans code de Référentiel.
 - Quand une source change (`snippets`, `localSnippets`, `importedArticles`), `retirerIconesAviso`
