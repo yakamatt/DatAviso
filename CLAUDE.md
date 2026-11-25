@@ -144,7 +144,8 @@ Les icônes s'insèrent dans la cellule « Dispositions réalisées », dans l'o
   lecture dans content.js et options.js) : `'boutons'` par défaut (rangée posée, menu masqué) ou
   `'menu'` (menu d'origine, aucun bouton) — jamais de menu masqué sans boutons. Les anciennes clés
   `boutonsAvis` / `masquerMenusAvis` (v2.29–2.31) ne servent plus qu'à reprendre un ancien
-  réglage. Un menu masqué porte `data-dataviso-menu-masque`, seul critère pour le réafficher.
+  réglage. Aucune rangée sur les chemins de `PAGES_SANS_BOUTONS_AVIS` (validation de plan,
+  `/verifications/edit/`, #110), quel que soit le réglage : ses menus ne sont pas des avis de ligne. Un menu masqué porte `data-dataviso-menu-masque`, seul critère pour le réafficher.
   La règle « jamais de menu masqué sans boutons » vaut aussi pour les options : une rangée est
   liée au jeu d'options sur lequel elle a été construite (`signatureOptions`) et reconstruite dès
   qu'il change ; si aucune option n'est utilisable, le menu d'origine reste visible. Aviso remplit

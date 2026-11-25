@@ -1283,8 +1283,29 @@ function insertAvisoBoutonsAvis(select, famille, signature) {
   masquerMenuAvis(select);
 }
 
+// Pages où aucun menu n'est remplacé par des boutons, quel que soit le réglage (#110). La
+// validation de plan (/verifications/edit/…) porte des menus que `familleMenuAvis` reconnaît,
+// mais qui n'y sont pas des avis de ligne de rapport : les remplacer y gênait la saisie. Préfixes
+// de chemin comparés sans casse ; l'hôte est déjà celui d'Aviso (isAvisoSite).
+const PAGES_SANS_BOUTONS_AVIS = ['/verifications/edit/'];
+
+function pageSansBoutonsAvis() {
+  const chemin = location.pathname.toLowerCase();
+  return PAGES_SANS_BOUTONS_AVIS.some(prefixe => chemin.startsWith(prefixe));
+}
+
 function scanSelecteursAvis() {
   if (!BOUTONS_AVIS) return;
+  if (pageSansBoutonsAvis()) {
+    // Arrivé ici sans rechargement (navigation AJAX) : rien ne doit rester des boutons posés
+    // avant, ni menu masqué sans bouton.
+    if (document.querySelector('.' + AVISO_AVIS_CLASS) || document.querySelector(`select[${AVIS_MENU_MASQUE_ATTR}]`)) {
+      reafficherMenusAvis();
+      remettreTousLiensRemarques();
+      document.querySelectorAll('.' + AVISO_AVIS_CLASS).forEach(el => el.remove());
+    }
+    return;
+  }
   document.querySelectorAll('select').forEach(select => {
     const signature = signatureOptions(select);
     const famille = familleMenuAvis(select, signature);
