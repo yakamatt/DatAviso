@@ -8,6 +8,7 @@ DatAviso est une extension Chrome gratuite qui remplace un raccourci court (un �
 
 - **Ce que vous tapez dans les pages web.** L'extension lit le texte saisi dans un champ uniquement pour repérer un déclencheur et le remplacer par son texte. Ce texte n'est **jamais envoyé** nulle part, ni enregistré.
 - **Le Clausier Personnel** (vos propres snippets), les **données DatAviso AI** que vous importez et vos **réglages** sont enregistrés dans le stockage de Chrome (`chrome.storage`), sur votre ordinateur. Les réglages peuvent être synchronisés par Chrome entre vos appareils si vous avez activé la synchronisation de votre compte Chrome.
+- **Les champs retenus du mode administrateur** (adresse de la page, sans paramètres, et emplacement du champ où le garant a créé un snippet au clic droit) restent dans le stockage local de Chrome, pour y reproposer le snippet. Ils ne sont jamais envoyés.
 - **Les liens d'affaire** (SGO, SharePoint, Explorateur Windows) sont de simples liens construits à partir du numéro d'affaire affiché dans Aviso. L'extension n'envoie rien elle-même : c'est votre clic qui ouvre la page ou l'application visée.
 
 ## Ce qui est échangé avec Google Sheets

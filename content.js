@@ -79,6 +79,9 @@ function loadSnippets() {
     IMPORTED_ARTICLES = res.importedArticles || [];
     rebuildActiveSnippets();
     if (isAvisoSite()) scheduleAvisoScan();
+    // Les icônes des champs retenus n'affichent que des snippets personnels existants : le premier
+    // scan a pu passer avant cette lecture.
+    scheduleScanChamps();
   });
 }
 // Applique les réglages ; renvoie les classes des éléments Aviso dont le réglage a changé, pour
@@ -1854,7 +1857,13 @@ function ouvrirCreationClicDroit(mode, selection, jeton) {
         });
         if (!rep || !rep.ok) throw new Error((rep && rep.error) || 'pas de réponse');
       }
-      if (!commun || aussiPerso.checked) await enregistrerSnippetLocal(trigger, contenu);
+      if (!commun || aussiPerso.checked) {
+        await enregistrerSnippetLocal(trigger, contenu);
+        // Le champ cliqué est retenu : à chaque retour sur cette page, il portera l'icône du
+        // snippet (voir « Champs retenus » plus bas). Un snippet commun seul n'a pas d'icône,
+        // il n'est pas encore dans le Clausier Commun.
+        if (champClicDroit) await retenirChamp(champClicDroit, trigger).catch(() => {});
+      }
       fermer();
     } catch (err) {
       btnEnregistrer.disabled = false;
@@ -1880,3 +1889,265 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   ouvrirCreationClicDroit(msg.mode, msg.selection, msg.jeton);
   sendResponse({ ok: true });
 });
+
+
+// ---------- Mode administrateur : champs retenus (#119) ----------
+// Un champ où le garant a créé un snippet au clic droit est retenu (storage.local, clé
+// champsRetenus : page, sélecteur du champ, déclencheurs). À chaque retour sur la page, une
+// petite rangée d'icônes jaunes flotte au coin haut droit du champ, une par déclencheur ; un clic
+// AJOUTE le snippet à la fin du champ, sans rien remplacer (même règle que dans Aviso). Le ✕
+// oublie le champ. Rien ne s'affiche hors du mode administrateur.
+//
+// La rangée vit dans un Shadow DOM posé sur <body>, en position absolue, et non dans la page à
+// côté du champ : insérée dans la mise en page d'un site inconnu, elle la décalerait ou serait
+// rognée par un conteneur. Elle suit le champ (défilement, redimensionnement, contrôle régulier)
+// et disparaît quand il n'est plus visible.
+
+const CHAMPS_RETENUS_MAX = 200;
+const CHAMP_HOTE_ATTR = 'data-dataviso-champ-retenu';
+let CHAMPS_RETENUS = [];
+let MODE_ADMIN = false;
+const hotesChamps = new Map(); // champ -> { hote, triggers }
+
+function cleDePage() {
+  return location.origin + location.pathname;
+}
+
+function echapperCss(v) {
+  return window.CSS && CSS.escape ? CSS.escape(v) : String(v).replace(/["\\]/g, '\\$&');
+}
+
+// Sélecteur stable du champ : son id, sinon son name, sinon un chemin de :nth-of-type depuis le
+// plus proche ancêtre à id (ou <body>). Retenu seulement s'il désigne ce champ et lui seul.
+function selecteurDuChamp(champ) {
+  const unique = (sel) => {
+    try { const r = document.querySelectorAll(sel); return r.length === 1 && r[0] === champ; } catch { return false; }
+  };
+  if (champ.id && unique('#' + echapperCss(champ.id))) return '#' + echapperCss(champ.id);
+  const nom = champ.getAttribute('name');
+  const tag = champ.tagName.toLowerCase();
+  if (nom && unique(`${tag}[name="${echapperCss(nom)}"]`)) return `${tag}[name="${echapperCss(nom)}"]`;
+  const etapes = [];
+  let el = champ;
+  while (el && el !== document.body && el.nodeType === 1) {
+    if (el !== champ && el.id) { etapes.unshift('#' + echapperCss(el.id)); break; }
+    const t = el.tagName.toLowerCase();
+    const freres = el.parentElement ? [...el.parentElement.children].filter(x => x.tagName === el.tagName) : [];
+    etapes.unshift(freres.length > 1 ? `${t}:nth-of-type(${freres.indexOf(el) + 1})` : t);
+    el = el.parentElement;
+  }
+  if (!etapes[0] || !etapes[0].startsWith('#')) etapes.unshift('body');
+  const sel = etapes.join(' > ');
+  return unique(sel) ? sel : null;
+}
+
+async function retenirChamp(champ, trigger) {
+  // Une cellule « Dispositions réalisées » d'Aviso a déjà ses icônes.
+  if (isAvisoSite() && champ.matches('textarea.verification')) return;
+  const selecteur = selecteurDuChamp(champ);
+  if (!selecteur) return;
+  const page = cleDePage();
+  const { champsRetenus } = await chrome.storage.local.get(['champsRetenus']);
+  const liste = (champsRetenus || []).slice();
+  let entree = liste.find(c => c.page === page && c.selecteur === selecteur);
+  if (!entree) {
+    entree = { page, selecteur, triggers: [] };
+    liste.push(entree);
+  }
+  if (!entree.triggers.includes(trigger)) entree.triggers.push(trigger);
+  entree.vu = new Date().toISOString();
+  // Les plus anciens partent d'abord : la liste ne grossit pas sans fin.
+  liste.sort((x, y) => String(y.vu).localeCompare(String(x.vu)));
+  await chrome.storage.local.set({ champsRetenus: liste.slice(0, CHAMPS_RETENUS_MAX) });
+}
+
+async function oublierChamp(selecteur) {
+  const page = cleDePage();
+  const { champsRetenus } = await chrome.storage.local.get(['champsRetenus']);
+  await chrome.storage.local.set({
+    champsRetenus: (champsRetenus || []).filter(c => !(c.page === page && c.selecteur === selecteur))
+  });
+}
+
+// Ajoute le texte à la fin du champ, séparé de l'existant par un saut de ligne (une espace dans
+// un <input>), puis signale la saisie comme une frappe pour que le site l'enregistre.
+function ajouterAuChamp(champ, texte) {
+  if (champ.matches('textarea, input')) {
+    const avant = champ.value || '';
+    const sep = !avant ? '' : champ.tagName === 'INPUT' ? (/\s$/.test(avant) ? '' : ' ') : (avant.endsWith('\n') ? '' : '\n');
+    const ajout = champ.tagName === 'INPUT' ? texte.replace(/\s*\n\s*/g, ' ') : texte;
+    setNativeValue(champ, avant + sep + ajout);
+    champ.dispatchEvent(new Event('input', { bubbles: true }));
+    champ.dispatchEvent(new Event('change', { bubbles: true }));
+    champ.focus();
+    const fin = champ.value.length;
+    try { champ.setSelectionRange(fin, fin); } catch { /* type sans sélection */ }
+  } else {
+    champ.focus();
+    const sel = window.getSelection();
+    const plage = document.createRange();
+    plage.selectNodeContents(champ);
+    plage.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(plage);
+    const avant = champ.innerText || '';
+    const texteFinal = (avant.trim() && !avant.endsWith('\n') ? '\n' : '') + texte;
+    // insertText garde l'historique d'annulation et prévient les éditeurs riches ; repli DOM sinon.
+    if (!document.execCommand('insertText', false, texteFinal)) {
+      champ.appendChild(document.createTextNode(texteFinal));
+      champ.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+}
+
+const CHAMP_CSS = `
+  :host { all: initial; }
+  .rangee { position: absolute; display: flex; gap: 3px; align-items: center; z-index: 2147483646;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif; }
+  button { border: 1px solid #c99700; background: #f2b705; color: #3d2e00; border-radius: 999px;
+    padding: 1px 8px; font: 600 11px ui-monospace, "SF Mono", Menlo, Consolas, monospace; cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); line-height: 16px; }
+  button:hover { background: #dba500; }
+  .oublier { background: #ffffff; color: #5b6a8f; border-color: #c3cdea; padding: 1px 6px; opacity: 0; transition: opacity .15s; }
+  .rangee:hover .oublier { opacity: 1; }
+`;
+
+function construireRangee(champ, entree) {
+  const triggers = entree.triggers.filter(t => LOCAL_SNIPPETS.some(s => s.trigger === t));
+  const existant = hotesChamps.get(champ);
+  const signature = triggers.join('\u0000');
+  if (existant && existant.signature === signature) return;
+  if (existant) existant.hote.remove();
+  hotesChamps.delete(champ);
+  if (!triggers.length) return;
+
+  const hote = document.createElement('div');
+  hote.setAttribute(CHAMP_HOTE_ATTR, '');
+  const root = hote.attachShadow({ mode: 'open' });
+  root.innerHTML = `<style>${CHAMP_CSS}</style><div class="rangee"></div>`;
+  const rangee = root.querySelector('.rangee');
+  triggers.forEach(trigger => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = trigger;
+    b.addEventListener('mouseenter', () => {
+      const s = LOCAL_SNIPPETS.find(x => x.trigger === trigger);
+      b.title = s ? `Ajouter « ${trigger} » à la fin du champ :\n\n${tronquerPourInfobulle(s.content)}` : '';
+    });
+    b.addEventListener('mousedown', (e) => e.preventDefault()); // garde le focus du champ
+    b.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const s = LOCAL_SNIPPETS.find(x => x.trigger === trigger);
+      if (!s) return;
+      ajouterAuChamp(champ, resolveContent(s.content));
+      compterUsage('admin_champ_insertion');
+    });
+    rangee.appendChild(b);
+  });
+  const oublier = document.createElement('button');
+  oublier.type = 'button';
+  oublier.className = 'oublier';
+  oublier.textContent = '✕';
+  oublier.title = 'Ne plus proposer de snippet sur ce champ (les snippets restent dans le Clausier Personnel)';
+  oublier.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    oublierChamp(entree.selecteur).catch(() => {});
+    compterUsage('admin_champ_oubli');
+  });
+  rangee.appendChild(oublier);
+  ['keydown', 'keyup', 'keypress', 'input', 'click', 'mousedown', 'mouseup'].forEach(type => {
+    hote.addEventListener(type, (e) => e.stopPropagation());
+  });
+  document.body.appendChild(hote);
+  hotesChamps.set(champ, { hote, rangee, signature });
+  placerRangee(champ);
+}
+
+function placerRangee(champ) {
+  const h = hotesChamps.get(champ);
+  if (!h) return;
+  const r = champ.getBoundingClientRect();
+  const visible = champ.isConnected && r.width > 0 && r.height > 0 && getComputedStyle(champ).visibility !== 'hidden';
+  h.rangee.style.display = visible ? 'flex' : 'none';
+  if (!visible) return;
+  const largeur = h.rangee.offsetWidth;
+  // Au-dessus du coin haut droit du champ, sans sortir de la fenêtre.
+  const x = Math.max(window.scrollX + 2, window.scrollX + r.right - largeur);
+  const y = Math.max(window.scrollY + 2, window.scrollY + r.top - 20);
+  h.rangee.style.left = `${x}px`;
+  h.rangee.style.top = `${y}px`;
+}
+
+function placerRangees() {
+  hotesChamps.forEach((h, champ) => {
+    if (!champ.isConnected) { h.hote.remove(); hotesChamps.delete(champ); return; }
+    placerRangee(champ);
+  });
+}
+
+function scanChampsRetenus() {
+  const page = cleDePage();
+  const entrees = MODE_ADMIN ? CHAMPS_RETENUS.filter(c => c.page === page) : [];
+  const vus = new Set();
+  entrees.forEach(entree => {
+    let champ = null;
+    try { champ = document.querySelector(entree.selecteur); } catch { /* sélecteur devenu invalide */ }
+    if (!champ) return;
+    vus.add(champ);
+    construireRangee(champ, entree);
+  });
+  hotesChamps.forEach((h, champ) => {
+    if (!vus.has(champ)) { h.hote.remove(); hotesChamps.delete(champ); }
+  });
+  placerRangees();
+}
+
+let champsObservateur = null;
+let champsMinuterie = null;
+let champsAttente = null;
+function scheduleScanChamps() {
+  clearTimeout(champsAttente);
+  champsAttente = setTimeout(scanChampsRetenus, 300);
+}
+
+// N'observe la page (MutationObserver, contrôle régulier de la position) que si elle a des champs
+// retenus et que le mode administrateur est actif : sur toute autre page, rien ne tourne.
+function majSuiviChamps() {
+  const actif = MODE_ADMIN && CHAMPS_RETENUS.some(c => c.page === cleDePage());
+  if (actif && !champsObservateur) {
+    champsObservateur = new MutationObserver((mutations) => {
+      // Nos propres rangées ne relancent pas le scan.
+      if (mutations.every(m => [...m.addedNodes, ...m.removedNodes].every(n => n.nodeType === 1 && n.hasAttribute && n.hasAttribute(CHAMP_HOTE_ATTR)))) return;
+      scheduleScanChamps();
+    });
+    champsObservateur.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('scroll', placerRangees, true);
+    window.addEventListener('resize', placerRangees);
+    champsMinuterie = setInterval(placerRangees, 1000);
+  } else if (!actif && champsObservateur) {
+    champsObservateur.disconnect();
+    champsObservateur = null;
+    window.removeEventListener('scroll', placerRangees, true);
+    window.removeEventListener('resize', placerRangees);
+    clearInterval(champsMinuterie);
+  }
+  scanChampsRetenus();
+}
+
+function chargerChampsRetenus() {
+  chrome.storage.local.get(['champsRetenus', 'adminCode'], (r) => {
+    CHAMPS_RETENUS = r.champsRetenus || [];
+    MODE_ADMIN = !!r.adminCode;
+    majSuiviChamps();
+  });
+}
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local') return;
+  if (changes.champsRetenus || changes.adminCode) chargerChampsRetenus();
+  // localSnippets est relu par loadSnippets : on reconstruit après, à la prochaine passe.
+  else if (changes.localSnippets) scheduleScanChamps();
+});
+if (document.body) chargerChampsRetenus();
+else document.addEventListener('DOMContentLoaded', chargerChampsRetenus);

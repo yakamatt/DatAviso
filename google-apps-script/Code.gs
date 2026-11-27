@@ -742,7 +742,9 @@ const STATS_LIBELLES = {
   admin_revue_tableau: 'Administration : tableau ouvert depuis le compteur de revue',
   admin_statistiques: 'Administration : ouvertures de la page de statistiques',
   admin_clic_droit_perso: 'Administration : clic droit, snippet personnel',
-  admin_clic_droit_commun: 'Administration : clic droit, proposition au Clausier Commun'
+  admin_clic_droit_commun: 'Administration : clic droit, proposition au Clausier Commun',
+  admin_champ_insertion: 'Administration : snippet ajouté depuis un champ retenu',
+  admin_champ_oubli: 'Administration : champ retenu oublié'
 };
 
 function getStatsSheet_() {

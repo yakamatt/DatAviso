@@ -191,6 +191,10 @@ code **refusé** est oublié (`refuse`), jamais un blocage temporaire (10 essais
 - Badge : un seul texte, une seule couleur dans Chrome. Total, rouge s'il y a une installation
   nouvelle, sinon jaune ; détail dans l'infobulle et le popup. Installation = premier jour de
   `Statistiques` d'un `Ref_User` ; « Vu » retient la date (`adminDepuis`) et les refs du jour.
+- Champs retenus (`champsRetenus`, storage.local, jamais envoyés) : page = origine + chemin,
+  sélecteur unique (`selecteurDuChamp`). Pastilles en Shadow DOM sur `<body>`, position absolue,
+  jamais dans la mise en page du site ; un clic **ajoute** à la fin (`ajouterAuChamp`), jamais de
+  remplacement. Observateur et minuterie seulement sur une page qui a des champs retenus.
 - Revue en attente (`propositionsEnAttente_`) : même filtre que `preparerRevue`, moins ce qui est
   déjà dans l'onglet `Revue`.
 
