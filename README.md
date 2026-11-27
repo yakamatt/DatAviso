@@ -13,7 +13,7 @@ Remplace automatiquement un texte court (ex: `;sig`) par un texte prédéfini, d
 
 ## 2. Utiliser l'extension
 
-- À l'installation, un **tutoriel** visuel s'ouvre dans un onglet ; le lien **"🎓 Tutoriel"** en haut du popup permet de le revoir.
+- À l'installation, un **tutoriel** visuel d'une seule page s'ouvre dans un onglet (les clausiers, les boutons Réglementation, la frappe d'un déclencheur, puis les liens d'affaire et la copie du numéro) ; le lien **"🎓 Tutoriel"** en haut du popup permet de le revoir.
 - Cliquez sur l'icône de l'extension pour ouvrir le petit menu ("popup") : **"📒 Modifier le Clausier Personnel"** (ouvre la page Paramètres sur cette section), **"📄 Consulter le Clausier Commun"** (ouvre le Google Sheets), l'import **DatAviso AI**, un lien **"✉️ Donner mon avis"** vers le formulaire de retour, **"🤝 Partager avec mes collègues"** (copie le lien de la fiche du Chrome Web Store, ou prépare un e-mail qui le contient), et le lien **"⚙️ Paramètres"**.
 - Un snippet a un **déclencheur** (ex: `;sig`, `/adresse`) et un **contenu**.
 - Tapez le déclencheur dans n'importe quel champ (Gmail, formulaires web, réseaux sociaux, contenteditable, champ « Remarque » d'Aviso...) : après une courte temporisation (1 seconde par défaut, réglable), il se remplace par le contenu — les sauts de ligne et retours à la ligne sont respectés.
@@ -250,7 +250,7 @@ snippet-expander/
 ├── clausier-fichiers.js     # Import/export du Clausier Personnel (.xlsx, .csv), sans dépendance
 ├── popup.html/css/js       # Popup de l'icône (barre d'outils) : clausiers, DatAviso AI, avis, Paramètres
 ├── tutoriel.html/css/js    # Tutoriel visuel, ouvert à l'installation et depuis le popup
-├── partage.js              # Lien d'installation à partager (popup et tutoriel)
+├── partage.js              # Lien d'installation à partager (popup)
 ├── options.html/css/js     # Page Paramètres : Clausier Personnel, DatAviso AI, paramètres avancés
 ├── statistiques.html/css/js # Page de statistiques du mode administrateur (graphiques SVG)
 ├── icons/                  # Icônes de l'extension

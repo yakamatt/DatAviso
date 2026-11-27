@@ -1,4 +1,4 @@
-// partage.js — lien d'installation de l'extension, partagé par le popup et le tutoriel.
+// partage.js — lien d'installation de l'extension, utilisé par le popup.
 // On partage la fiche du Chrome Web Store plutôt qu'un fichier : l'installation y est en un clic
 // et Chrome applique ensuite les mises à jour automatiquement. Copie dans le presse-papiers
 // (autorisée sans permission sur un clic de l'utilisateur), ou message prérempli dans la

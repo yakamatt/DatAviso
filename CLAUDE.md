@@ -27,8 +27,8 @@ jamais avoir « testé », dis ce que tu as vérifié et comment.
 | `options.js/html/css` | Page Paramètres : Clausier Personnel, DatAviso AI, paramètres avancés (dont l'activation du mode administrateur) |
 | `statistiques.js/html/css` | Page de statistiques du mode administrateur, graphiques SVG écrits à la main |
 | `popup.js/html/css` | Popup de l'icône : lien du tutoriel, liens vers les deux clausiers, import DatAviso AI, formulaire de retour, partage |
-| `tutoriel.js/html/css` | Tutoriel visuel en étapes : maquettes HTML avec les vraies icônes, pas de captures d'écran |
-| `partage.js` | Lien d'installation du Store à copier ou envoyer, partagé par le popup et le tutoriel |
+| `tutoriel.js/html/css` | Tutoriel visuel sur une seule page (clausiers, puis ergonomie Aviso, #120) : maquettes HTML avec les vraies icônes, pas de captures d'écran |
+| `partage.js` | Lien d'installation du Store à copier ou envoyer, utilisé par le popup |
 | `google-apps-script/Code.gs` | Mini-API côté Sheets. **Copie de référence** : le code qui tourne vit dans l'éditeur Apps Script, ce fichier ne se déploie pas tout seul |
 
 ## Invariants — à ne jamais casser
