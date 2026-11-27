@@ -180,6 +180,11 @@ function doGet(e) {
 function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
+    // Le Ref_User du garant n'est écrit que par le mode administrateur : sans ce refus, n'importe
+    // qui ferait passer sa proposition en tête de la revue sous la marque du garant.
+    if (body.action === 'backup' && String(body.refUser || '').trim() === REF_GARANT) {
+      return json_({ ok: false, error: 'Ref_User réservé' });
+    }
     if (body.action === 'backup') return json_(sauvegarderClausier_(body));
     if (body.action === 'stats') return json_(enregistrerStatistiques_(body));
     if (body.action === 'admin') return json_(administrer_(body));
@@ -273,6 +278,11 @@ const DECISION_IGNORER = 'Ignorer';
 // Ajoutées à la colonne Type quand « Préparer la revue » reporte le travail de la revue précédente.
 const MARQUE_RETOUCHE = '✍️ retouche conservée';
 const MARQUE_CHANGEE = '🔄 proposition changée';
+// Proposition faite par le garant lui-même, depuis le clic droit de l'extension en mode
+// administrateur (#119) : rangée sous ce Ref_User dans "Local_Snippets_Backup", elle suit le même
+// chemin que les autres (revue, décision, Appliquer les décisions) et passe en tête de la revue.
+const REF_GARANT = 'GARANT-ADMIN';
+const MARQUE_GARANT = '🛡️ proposé par le garant';
 
 function onOpen() {
   SpreadsheetApp.getUi()
@@ -464,6 +474,7 @@ function preparerRevue() {
     const autres = variantes.slice(1)
       .map(v => `(${v.nb} utilisateur${v.nb > 1 ? 's' : ''})\n${v.texte}`).join('\n\n———\n\n');
     let type = commun ? '✏️ Variante' : '🆕 Nouveau';
+    if (Object.values(g.variantes).some(v => v.users[REF_GARANT])) type += '\n' + MARQUE_GARANT;
     let decision = '';
     let texteFinal = cumulTexteFinal_(commun ? commun.content : '', variantes.map(v => v.texte));
     // Ligne déjà travaillée dans la revue précédente : sa décision et son Texte final sont repris
@@ -491,7 +502,8 @@ function preparerRevue() {
       cle,
       JSON.stringify(variantes.map(v => v.texte))
     ];
-  }).sort((a, b) => parseInt(b[4], 10) - parseInt(a[4], 10) || String(a[1]).localeCompare(String(b[1])));
+  }).sort((a, b) => (String(b[0]).indexOf(MARQUE_GARANT) >= 0) - (String(a[0]).indexOf(MARQUE_GARANT) >= 0) ||
+    parseInt(b[4], 10) - parseInt(a[4], 10) || String(a[1]).localeCompare(String(b[1])));
 
   // Ce qui ne se reporte pas serait perdu en silence : une ligne travaillée qui n'est plus à revoir
   // (texte commun modifié à la main, variante supprimée…), ou une revue d'un format inconnu.
@@ -728,7 +740,9 @@ const STATS_LIBELLES = {
   admin_desactivation: 'Mode administrateur désactivé',
   admin_installations_vues: 'Administration : nouvelles installations marquées vues',
   admin_revue_tableau: 'Administration : tableau ouvert depuis le compteur de revue',
-  admin_statistiques: 'Administration : ouvertures de la page de statistiques'
+  admin_statistiques: 'Administration : ouvertures de la page de statistiques',
+  admin_clic_droit_perso: 'Administration : clic droit, snippet personnel',
+  admin_clic_droit_commun: 'Administration : clic droit, proposition au Clausier Commun'
 };
 
 function getStatsSheet_() {
@@ -935,8 +949,10 @@ function syntheseStatistiques_(periode) {
 // quart d'heure, tous appelants confondus). Au-delà, le mode administrateur est suspendu pour
 // tous pendant ce quart d'heure, y compris le garant : c'est le prix de l'absence de comptes.
 //
-// Le mode administrateur ne fait que LIRE. Il n'ouvre aucune écriture vers "Snippets" (voir
-// l'en-tête) : un code qui fuit ne permet d'injecter aucun snippet chez les utilisateurs.
+// Le mode administrateur n'ouvre aucune écriture vers "Snippets" (voir l'en-tête) : un code qui
+// fuit ne permet d'injecter aucun snippet chez les utilisateurs. Sa seule écriture, "proposer",
+// ajoute une ligne dans "Local_Snippets_Backup", comme la sauvegarde de n'importe quel
+// utilisateur : elle n'atteint le Clausier Commun que par la revue et la décision du garant.
 
 const ADMIN_PROPRIETE_EMPREINTE = 'adminEmpreinte';
 const ADMIN_PROPRIETE_SEL = 'adminSel';
@@ -997,7 +1013,19 @@ function administrer_(body) {
   if (body.demande === 'verifier') return { ok: true, api: 'admin', version: API_VERSION };
   if (body.demande === 'etat') return { ok: true, api: 'admin', ...etatAdmin_(body) };
   if (body.demande === 'statistiques') return { ok: true, api: 'admin', ...statistiquesAdmin_() };
+  if (body.demande === 'proposer') return proposerAuClausierCommun_(body);
   return { ok: false, api: 'admin', error: 'Demande inconnue : ' + body.demande };
+}
+
+// Clic droit « Proposer au Clausier Commun » : une ligne de sauvegarde au nom du garant, que la
+// prochaine revue affiche en tête. Même écriture confinée que la sauvegarde (texteBrut_ compris).
+function proposerAuClausierCommun_(body) {
+  const trigger = String(body.trigger || '').trim();
+  const content = String(body.content || '');
+  if (!trigger || !content.trim()) return { ok: false, api: 'admin', error: 'Déclencheur ou texte vide' };
+  if (trigger.length > 100 || content.length > 20000) return { ok: false, api: 'admin', error: 'Proposition trop longue' };
+  const r = sauvegarderClausier_({ refUser: REF_GARANT, snippets: [{ trigger, content }] });
+  return { ...r, api: 'admin' };
 }
 
 // Premier jour où chaque installation a envoyé ses statistiques : c'est sa date d'arrivée. Une

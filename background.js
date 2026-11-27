@@ -67,12 +67,14 @@ chrome.runtime.onInstalled.addListener((details) => {
       .catch(e => console.error('[DatAviso] Sauvegarde du Clausier Personnel :', e.message));
 
     scheduleAlarms();
+    majMenusAdmin().catch(e => console.error('[DatAviso] Menu du mode administrateur :', e.message));
     actualiserBadgeAdmin().catch(e => console.error('[DatAviso] Mode administrateur :', e.message));
   })();
 });
 
 chrome.runtime.onStartup.addListener(() => {
   scheduleAlarms();
+  majMenusAdmin().catch(e => console.error('[DatAviso] Menu du mode administrateur :', e.message));
   // Le badge ne survit pas à un redémarrage du navigateur.
   actualiserBadgeAdmin().catch(e => console.error('[DatAviso] Mode administrateur :', e.message));
 });
@@ -271,7 +273,8 @@ const STATS_CLES = [
   'lien_sgo', 'lien_sharepoint', 'lien_explorateur',
   'import_dataviso', 'clausier_import', 'clausier_export',
   'popup', 'parametres', 'tutoriel',
-  'admin_activation', 'admin_desactivation', 'admin_installations_vues', 'admin_revue_tableau', 'admin_statistiques'
+  'admin_activation', 'admin_desactivation', 'admin_installations_vues', 'admin_revue_tableau', 'admin_statistiques',
+  'admin_clic_droit_perso', 'admin_clic_droit_commun'
 ];
 let fileStats = Promise.resolve();
 
@@ -484,8 +487,51 @@ async function marquerInstallationsVues() {
   await afficherBadgeAdmin(etat);
 }
 
+// ---------- Mode administrateur : clic droit sur un champ de saisie ----------
+// Le menu n'existe qu'en mode administrateur : une installation ordinaire n'a aucune entrée dans
+// le clic droit (la permission contextMenus est déclarée pour tous, elle ne sert qu'à ce menu).
+// Le clic ouvre la fenêtre de création dans le cadre cliqué (content.js). Pour une proposition au
+// Clausier Commun, la fenêtre renvoie un jeton à usage unique remis ici au clic : le script de
+// contenu ne peut demander une écriture du mode administrateur qu'à la suite de ce geste.
+const MENU_ADMIN_PERSO = 'dataviso-admin-perso';
+const MENU_ADMIN_COMMUN = 'dataviso-admin-commun';
+const JETON_DUREE_MS = 30 * 60 * 1000;
+
+async function majMenusAdmin() {
+  const { adminCode } = await chrome.storage.local.get(['adminCode']);
+  await chrome.contextMenus.removeAll();
+  if (!adminCode) return;
+  chrome.contextMenus.create({ id: MENU_ADMIN_PERSO, title: 'DatAviso : créer un snippet personnel…', contexts: ['editable', 'selection'] });
+  chrome.contextMenus.create({ id: MENU_ADMIN_COMMUN, title: 'DatAviso : proposer au Clausier Commun…', contexts: ['editable', 'selection'] });
+}
+
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (!tab || (info.menuItemId !== MENU_ADMIN_PERSO && info.menuItemId !== MENU_ADMIN_COMMUN)) return;
+  const commun = info.menuItemId === MENU_ADMIN_COMMUN;
+  compterUsage(commun ? 'admin_clic_droit_commun' : 'admin_clic_droit_perso');
+  let jeton = null;
+  if (commun) {
+    jeton = crypto.randomUUID();
+    // storage.session : le service worker peut s'arrêter pendant que la fenêtre est ouverte.
+    await chrome.storage.session.set({ jetonProposition: { jeton, expire: Date.now() + JETON_DUREE_MS } });
+  }
+  chrome.tabs.sendMessage(tab.id,
+    { type: 'DATAVISO_CLIC_DROIT', mode: commun ? 'commun' : 'perso', selection: info.selectionText || '', jeton },
+    { frameId: info.frameId || 0 },
+    // Pas de script de contenu (page chrome://, onglet ouvert avant l'installation) : rien à faire.
+    () => void chrome.runtime.lastError);
+});
+
+async function consommerJeton(jeton) {
+  const { jetonProposition } = await chrome.storage.session.get(['jetonProposition']);
+  const valide = !!jeton && !!jetonProposition && jetonProposition.jeton === jeton && jetonProposition.expire > Date.now();
+  if (valide) await chrome.storage.session.remove(['jetonProposition']);
+  return valide;
+}
+
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local' || !changes.adminCode) return;
+  majMenusAdmin().catch(e => console.error('[DatAviso] Menu du mode administrateur :', e.message));
   // Nouvelle activation : seules les installations à venir sont « nouvelles ».
   const suite = changes.adminCode.newValue
     ? chrome.storage.local.set({ adminDepuis: jourLocal(), adminInstallationsVues: [] })
@@ -527,7 +573,19 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   // Pages de l'extension seulement (Paramètres) : le script de contenu tourne sur toute page web
   // et n'a pas à déclencher de demande portant le code administrateur.
   if (msg.type === 'ADMIN') {
-    if (sender.id !== chrome.runtime.id || !sender.url || !sender.url.startsWith(chrome.runtime.getURL(''))) {
+    const pageExtension = sender.id === chrome.runtime.id && !!sender.url && sender.url.startsWith(chrome.runtime.getURL(''));
+    if (msg.demande === 'proposer') {
+      // Seule demande ouverte au script de contenu, et seulement avec le jeton du clic droit.
+      (sender.id === chrome.runtime.id ? consommerJeton(msg.jeton) : Promise.resolve(false))
+        .then(valide => {
+          if (!valide) throw new Error('Proposition expirée : refaites le clic droit');
+          return demandeAdmin('proposer', { params: { trigger: String(msg.trigger || ''), content: String(msg.content || '') } });
+        })
+        .then(data => sendResponse(data))
+        .catch(e => sendResponse({ ok: false, error: e.message }));
+      return true;
+    }
+    if (!pageExtension) {
       sendResponse({ ok: false, error: 'Origine refusée' });
       return false;
     }

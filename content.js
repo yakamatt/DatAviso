@@ -1749,3 +1749,134 @@ if (isAvisoSite()) {
   window.addEventListener('resize', scheduleAvisoScan);
   scheduleAvisoScan();
 }
+
+// ---------- Mode administrateur : clic droit sur un champ de saisie (#119) ----------
+// Le menu contextuel n'existe qu'en mode administrateur (background.js, majMenusAdmin). Sur
+// n'importe quel site, il ouvre une fenêtre de création : snippet du Clausier Personnel, ou
+// proposition au Clausier Commun. Une proposition ne va jamais directement dans le Clausier
+// Commun : elle arrive dans la revue du tableau, marquée « proposé par le garant », et n'est
+// appliquée que par « Appliquer les décisions » (invariant 1).
+//
+// Contenu proposé : le texte sélectionné, sinon ce que contient le champ cliqué. Rien n'est
+// écrit dans le champ : la fenêtre ne fait que lire la page.
+
+let champClicDroit = null;
+document.addEventListener('contextmenu', (e) => {
+  const cible = e.target instanceof Element ? e.target : null;
+  champClicDroit = cible && cible.closest('textarea, input, [contenteditable]:not([contenteditable="false"])');
+}, true);
+
+function texteDuChamp(champ) {
+  if (!champ) return '';
+  if (champ.matches('textarea, input')) return champ.value || '';
+  return champ.innerText || '';
+}
+
+function ouvrirCreationClicDroit(mode, selection, jeton) {
+  if (document.getElementById(AVISO_EDITOR_ID)) return;
+  const commun = mode === 'commun';
+  const contenuInitial = (selection || '').trim() ? selection : texteDuChamp(champClicDroit);
+
+  const host = document.createElement('div');
+  host.id = AVISO_EDITOR_ID;
+  const root = host.attachShadow({ mode: 'open' });
+  root.innerHTML = `<style>${AVISO_EDITOR_CSS}
+    .fenetre.commun { border-top-color: #2d51b2; }
+    .commun .enregistrer { background: #2d51b2; color: #ffffff; }
+    .commun .enregistrer:hover { background: #1f3d8f; }
+    label { font-size: 12.5px; font-weight: 600; }
+    input[type="text"] { width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #c3cdea;
+      border-radius: 8px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13.5px; }
+    .case { display: flex; align-items: center; gap: 6px; font-weight: 400; }
+    .case[hidden] { display: none; }
+    </style>
+    <div class="fond">
+      <div class="fenetre${commun ? ' commun' : ''}" role="dialog" aria-modal="true" aria-labelledby="titre">
+        <h2 id="titre">${commun ? 'Proposer au Clausier Commun' : 'Créer un snippet personnel'}</h2>
+        <p class="aide">${commun
+          ? 'La proposition arrive dans la revue du tableau, en tête et marquée « proposé par le garant ». Elle n\'entre dans le Clausier Commun qu\'avec « Appliquer les décisions ».'
+          : 'Clausier Personnel : ce snippet est enregistré dans ce navigateur uniquement, et se déclenche au clavier sur toute page.'}
+          Ctrl+Entrée pour enregistrer, Échap pour annuler.</p>
+        <label for="declencheur">Déclencheur</label>
+        <input type="text" id="declencheur" placeholder="/exemple" spellcheck="false" autocomplete="off" />
+        <label for="contenu">Texte</label>
+        <textarea id="contenu" spellcheck="true"></textarea>
+        <label class="case" ${commun ? '' : 'hidden'}><input type="checkbox" id="aussi-perso" checked /> L'ajouter aussi à mon Clausier Personnel, pour m'en servir dès maintenant</label>
+        <p class="erreur" hidden></p>
+        <div class="actions">
+          <span class="espace"></span>
+          <button type="button" class="annuler">Annuler</button>
+          <button type="button" class="enregistrer">${commun ? 'Proposer' : 'Enregistrer'}</button>
+        </div>
+      </div>
+    </div>`;
+
+  const champTrigger = root.getElementById('declencheur');
+  const textarea = root.getElementById('contenu');
+  const aussiPerso = root.getElementById('aussi-perso');
+  const erreurEl = root.querySelector('.erreur');
+  const btnEnregistrer = root.querySelector('.enregistrer');
+  textarea.value = contenuInitial || '';
+
+  ['keydown', 'keyup', 'keypress', 'input', 'click', 'mousedown', 'mouseup'].forEach(type => {
+    host.addEventListener(type, (e) => e.stopPropagation());
+  });
+
+  const fermer = () => host.remove();
+  const afficherErreur = (message) => { erreurEl.textContent = message; erreurEl.hidden = false; };
+  const annuler = () => {
+    if ((textarea.value !== (contenuInitial || '') || champTrigger.value.trim()) &&
+        !confirm('Abandonner ce snippet ?')) return;
+    fermer();
+  };
+
+  const enregistrer = async () => {
+    const trigger = champTrigger.value.trim();
+    const contenu = textarea.value;
+    if (!trigger) { afficherErreur('Saisissez un déclencheur, par exemple /gn4.'); champTrigger.focus(); return; }
+    if (/\s/.test(trigger)) { afficherErreur('Le déclencheur ne doit pas contenir d\'espace.'); champTrigger.focus(); return; }
+    if (!contenu.trim()) { afficherErreur('Le texte est vide.'); textarea.focus(); return; }
+    btnEnregistrer.disabled = true;
+    try {
+      if (!commun || aussiPerso.checked) {
+        // Un snippet personnel existant n'est jamais remplacé sans accord.
+        const existant = LOCAL_SNIPPETS.find(s => s.trigger === trigger);
+        if (existant && existant.content !== contenu &&
+            !confirm(`Le snippet "${trigger}" existe déjà dans votre Clausier Personnel. Le remplacer ?`)) {
+          btnEnregistrer.disabled = false;
+          return;
+        }
+      }
+      if (commun) {
+        const rep = await new Promise((resolve) => {
+          chrome.runtime.sendMessage({ type: 'ADMIN', demande: 'proposer', jeton, trigger, content: contenu },
+            (r) => resolve(chrome.runtime.lastError ? { ok: false, error: chrome.runtime.lastError.message } : r));
+        });
+        if (!rep || !rep.ok) throw new Error((rep && rep.error) || 'pas de réponse');
+      }
+      if (!commun || aussiPerso.checked) await enregistrerSnippetLocal(trigger, contenu);
+      fermer();
+    } catch (err) {
+      btnEnregistrer.disabled = false;
+      afficherErreur(/context invalidated/i.test(err && err.message)
+        ? "L'extension a été mise à jour : rechargez la page, puis recommencez."
+        : `${commun ? 'Proposition' : 'Enregistrement'} impossible : ${err && err.message}`);
+    }
+  };
+
+  btnEnregistrer.addEventListener('click', enregistrer);
+  root.querySelector('.annuler').addEventListener('click', annuler);
+  root.querySelector('.fenetre').addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); annuler(); }
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); enregistrer(); }
+  });
+
+  document.body.appendChild(host);
+  champTrigger.focus();
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!msg || msg.type !== 'DATAVISO_CLIC_DROIT' || sender.id !== chrome.runtime.id) return;
+  ouvrirCreationClicDroit(msg.mode, msg.selection, msg.jeton);
+  sendResponse({ ok: true });
+});

@@ -157,6 +157,13 @@ Le menu **Clausier** du Google Sheets (ajouté par `Code.gs`, visible des édite
 
  Les lignes de plus de 24 mois sont supprimées de l'onglet `Statistiques` au fil des envois.
 
+**Clausier > Définir le code administrateur** fixe le code du **mode administrateur** de l'extension (12 caractères au moins, stocké en empreinte dans les propriétés du script). Saisi dans Paramètres avancés > Mode administrateur, il donne au garant, sur ce poste seulement :
+- un **compteur sur l'icône** : nouvelles installations (rouge) et propositions pas encore dans la revue (jaune), détaillées dans le popup ;
+- une **page de statistiques** avec graphiques (popup > 📊 Statistiques d'utilisation) ;
+- un **clic droit** sur tout champ de saisie ou texte sélectionné : créer un snippet personnel, ou proposer un snippet au Clausier Commun. La proposition arrive dans la prochaine revue, en tête, marquée 🛡️ *proposé par le garant* ; rien n'est écrit dans `Snippets` avant « Appliquer les décisions ».
+
+Le script doit être redéployé en « Nouvelle version » (API v7). Après 10 codes faux en un quart d'heure, le mode administrateur est suspendu un quart d'heure pour tous.
+
 Les onglets `Local_Snippets_Backup`, `Statistiques`, `Historique` et `Revue_Traités` sont **masqués** ; `Revue` ne s'affiche que pendant une revue. Masquer n'est pas protéger : toute personne qui a accès au tableau peut les réafficher ou en faire une copie. Le menu fonctionne dès l'enregistrement du code dans l'éditeur Apps Script, sans redéploiement (rechargez le tableau pour le voir apparaître).
 
 ## 4. Paramètres avancés
@@ -166,6 +173,7 @@ Accessibles via le bouton "⚙️ Paramètres avancés" en bas de la page Option
 - **Liens vers l'affaire** : une case par lien (SGO, SharePoint, Explorateur Windows), tous activés par défaut
 - **Liens réglementaires** : pour chaque trame (ERP, Habitation, BUP incendie, BUP accessibilité), une case sitesecurite.com et une case Légifrance, plus trois cases Légifrance pour HAND (ERP neufs, habitation neuve, lieux de travail), toutes cochées par défaut
 - **Boutons d'avis** : deux choix exclusifs pour les menus d'avis et de conformité d'Aviso, « Remplacer le menu déroulant par des boutons » (par défaut, le menu est masqué) ou « Utiliser le menu déroulant d'origine (sans bouton) »
+- **Mode administrateur** : réservé au garant du Clausier Commun, sur présentation du code défini dans le tableau (voir 3 e)
 - **Temporisation avant expansion** : délai (ms) après la fin de la frappe avant remplacement (évite qu'un mot plus long contenant un déclencheur ne s'expanse par erreur)
 - **Mise à jour de l'extension** : la version installée. Chrome installe les mises à jour depuis le Chrome Web Store, sans action de votre part
 
@@ -218,6 +226,7 @@ Dans l'onglet **"Privacy practices"** du dashboard :
   - **`storage`** : enregistrer les snippets, les réglages et les données DatAviso AI
   - **`unlimitedStorage`** : le Clausier Personnel et les données DatAviso AI, conservés dans le navigateur, peuvent dépasser la limite de 10 Mo de `chrome.storage.local`
   - **`alarms`** : actualiser périodiquement le Clausier Commun (toutes les heures par défaut), et envoyer à ce moment la sauvegarde et les statistiques anonymes
+  - **`contextMenus`** : en mode administrateur (garant du Clausier Commun, activé par un code), ajouter au clic droit d'un champ de saisie ou d'un texte sélectionné la création d'un snippet personnel ou la proposition d'un snippet au Clausier Commun. Sans ce mode, aucune entrée n'est créée
 - **Avant chaque soumission**, vérifier que toute nouvelle permission est réellement utilisée par une installation depuis le Store, pas seulement en mode développeur
 - **Usage des données** : l'extension lit du texte dans les champs des pages visitées (fonctionnalité cœur), sans jamais l'envoyer, et récupère vos snippets depuis l'URL Google Sheets que *vous* configurez. Deux données sont envoyées vers ce même Google Sheets, chacune désactivable : la **copie anonyme du Clausier Personnel** (déclencheur, contenu, identifiant aléatoire, date), à déclarer comme « Website content » (la catégorie du formulaire la plus proche d'un texte rédigé par l'utilisateur), et les **statistiques d'utilisation anonymes** (nombre d'utilisations de chaque fonction par jour, version, nombre de snippets personnels et d'articles DatAviso AI, identifiant aléatoire), à déclarer comme « activité de l'utilisateur ». Ni l'une ni l'autre n'est vendue ou utilisée à d'autres fins que l'amélioration de l'extension et du Clausier Commun
 - **URL de politique de confidentialité** : `https://github.com/yakamatt/DatAviso/blob/main/PRIVACY.md` ([PRIVACY.md](PRIVACY.md)). À mettre à jour, avec la date en tête, dès qu'une donnée envoyée ou une permission change
@@ -243,6 +252,7 @@ snippet-expander/
 ├── tutoriel.html/css/js    # Tutoriel visuel, ouvert à l'installation et depuis le popup
 ├── partage.js              # Lien d'installation à partager (popup et tutoriel)
 ├── options.html/css/js     # Page Paramètres : Clausier Personnel, DatAviso AI, paramètres avancés
+├── statistiques.html/css/js # Page de statistiques du mode administrateur (graphiques SVG)
 ├── icons/                  # Icônes de l'extension
 ├── CHANGELOG.md             # Historique des versions
 ├── PRIVACY.md               # Politique de confidentialité (URL déclarée sur le Chrome Web Store)
