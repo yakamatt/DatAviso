@@ -274,7 +274,7 @@ const STATS_CLES = [
   'import_dataviso', 'clausier_import', 'clausier_export',
   'popup', 'parametres', 'tutoriel',
   'admin_activation', 'admin_desactivation', 'admin_installations_vues', 'admin_revue_tableau', 'admin_statistiques',
-  'admin_clic_droit_perso', 'admin_clic_droit_commun', 'admin_champ_insertion', 'admin_champ_oubli'
+  'admin_clic_droit_perso', 'admin_clic_droit_commun', 'admin_champ_plus', 'admin_champ_perso', 'admin_champ_commun', 'admin_champ_oubli'
 ];
 let fileStats = Promise.resolve();
 

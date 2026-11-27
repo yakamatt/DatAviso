@@ -1775,7 +1775,7 @@ function texteDuChamp(champ) {
   return champ.innerText || '';
 }
 
-function ouvrirCreationClicDroit(mode, selection, jeton) {
+function ouvrirCreationClicDroit(mode, selection, jeton, triggerInitial = '') {
   if (document.getElementById(AVISO_EDITOR_ID)) return;
   const commun = mode === 'commun';
   const contenuInitial = (selection || '').trim() ? selection : texteDuChamp(champClicDroit);
@@ -1820,6 +1820,7 @@ function ouvrirCreationClicDroit(mode, selection, jeton) {
   const erreurEl = root.querySelector('.erreur');
   const btnEnregistrer = root.querySelector('.enregistrer');
   textarea.value = contenuInitial || '';
+  champTrigger.value = triggerInitial;
 
   ['keydown', 'keyup', 'keypress', 'input', 'click', 'mousedown', 'mouseup'].forEach(type => {
     host.addEventListener(type, (e) => e.stopPropagation());
@@ -1828,7 +1829,7 @@ function ouvrirCreationClicDroit(mode, selection, jeton) {
   const fermer = () => host.remove();
   const afficherErreur = (message) => { erreurEl.textContent = message; erreurEl.hidden = false; };
   const annuler = () => {
-    if ((textarea.value !== (contenuInitial || '') || champTrigger.value.trim()) &&
+    if ((textarea.value !== (contenuInitial || '') || champTrigger.value.trim() !== triggerInitial) &&
         !confirm('Abandonner ce snippet ?')) return;
     fermer();
   };
@@ -1857,13 +1858,11 @@ function ouvrirCreationClicDroit(mode, selection, jeton) {
         });
         if (!rep || !rep.ok) throw new Error((rep && rep.error) || 'pas de réponse');
       }
-      if (!commun || aussiPerso.checked) {
-        await enregistrerSnippetLocal(trigger, contenu);
-        // Le champ cliqué est retenu : à chaque retour sur cette page, il portera l'icône du
-        // snippet (voir « Champs retenus » plus bas). Un snippet commun seul n'a pas d'icône,
-        // il n'est pas encore dans le Clausier Commun.
-        if (champClicDroit) await retenirChamp(champClicDroit, trigger).catch(() => {});
-      }
+      if (!commun || aussiPerso.checked) await enregistrerSnippetLocal(trigger, contenu);
+      // Le champ cliqué est retenu : à chaque retour sur cette page, il portera les icônes du
+      // déclencheur (voir « Champs retenus » plus bas), le « + » tant qu'il n'y a pas de snippet
+      // personnel, et l'icône bleue dès que la proposition est adoptée dans le Clausier Commun.
+      if (champClicDroit) await retenirChamp(champClicDroit, trigger).catch(() => {});
       fermer();
     } catch (err) {
       btnEnregistrer.disabled = false;
@@ -1881,7 +1880,8 @@ function ouvrirCreationClicDroit(mode, selection, jeton) {
   });
 
   document.body.appendChild(host);
-  champTrigger.focus();
+  if (triggerInitial) textarea.focus();
+  else champTrigger.focus();
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -1894,9 +1894,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // ---------- Mode administrateur : champs retenus (#119) ----------
 // Un champ où le garant a créé un snippet au clic droit est retenu (storage.local, clé
 // champsRetenus : page, sélecteur du champ, déclencheurs). À chaque retour sur la page, une
-// petite rangée d'icônes jaunes flotte au coin haut droit du champ, une par déclencheur ; un clic
-// AJOUTE le snippet à la fin du champ, sans rien remplacer (même règle que dans Aviso). Le ✕
-// oublie le champ. Rien ne s'affiche hors du mode administrateur.
+// petite rangée flotte au coin haut droit du champ, avec les icônes d'Aviso pour chaque
+// déclencheur : « + » gris ou jaune (Clausier Personnel), puis bleue (Clausier Commun). Un clic
+// AJOUTE le snippet à la fin du champ, sans rien remplacer (même règle que dans Aviso). Le ✕,
+// au survol, oublie le champ. Rien ne s'affiche hors du mode administrateur.
 //
 // La rangée vit dans un Shadow DOM posé sur <body>, en position absolue, et non dans la page à
 // côté du champ : insérée dans la mise en page d'un site inconnu, elle la décalerait ou serait
@@ -2000,56 +2001,115 @@ function ajouterAuChamp(champ, texte) {
   }
 }
 
+// Mêmes icônes que dans Aviso (icons/add16.svg, icons/local16.svg, et le logo bleu de
+// icons/icon16.png redessiné en SVG), écrites ici plutôt que chargées : un fichier de l'extension
+// ne s'affiche sur un site que s'il est déclaré « web accessible » pour ce site, et l'ouvrir à
+// tous les sites laisserait n'importe quelle page détecter l'extension. Tout changement d'une
+// icône se reporte ici.
+const ICONE_CHAMP_PLUS = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">' +
+  '<circle cx="8" cy="8" r="7" fill="#ffffff" stroke="#5b6a8f" stroke-width="1.5"/>' +
+  '<path d="M8 4.75v6.5M4.75 8h6.5" stroke="#5b6a8f" stroke-width="1.5" stroke-linecap="round"/></svg>';
+const iconeChampLogo = (fond, trait) => '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">' +
+  `<rect x="0.5" y="0.5" width="15" height="15" rx="2.5" fill="${fond}"/>` +
+  `<path d="M4.5 5v6M1.75 8h5.5" stroke="${trait}" stroke-width="1.6" stroke-linecap="round"/>` +
+  `<path d="M9.25 8h4.5M11.75 5.75 13.9 8l-2.15 2.25" fill="none" stroke="${trait}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const ICONE_CHAMP_PERSO = iconeChampLogo('#f2b705', '#3d2e00');
+const ICONE_CHAMP_COMMUN = iconeChampLogo('#2d51b2', '#ffffff');
+
 const CHAMP_CSS = `
   :host { all: initial; }
-  .rangee { position: absolute; display: flex; gap: 3px; align-items: center; z-index: 2147483646;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif; }
-  button { border: 1px solid #c99700; background: #f2b705; color: #3d2e00; border-radius: 999px;
-    padding: 1px 8px; font: 600 11px ui-monospace, "SF Mono", Menlo, Consolas, monospace; cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); line-height: 16px; }
-  button:hover { background: #dba500; }
-  .oublier { background: #ffffff; color: #5b6a8f; border-color: #c3cdea; padding: 1px 6px; opacity: 0; transition: opacity .15s; }
-  .rangee:hover .oublier { opacity: 1; }
+  .rangee { position: absolute; display: flex; gap: 4px; align-items: center; z-index: 2147483646;
+    padding: 2px 3px; background: rgba(255, 255, 255, 0.92); border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); }
+  .groupe { display: flex; gap: 3px; }
+  .groupe + .groupe { padding-left: 4px; border-left: 1px solid #dde3f3; }
+  button { all: unset; cursor: pointer; display: inline-flex; }
+  button svg { display: block; }
+  .oublier { color: #5b6a8f; font: 600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    line-height: 16px; padding: 0 2px; display: none; }
+  .rangee:hover .oublier { display: inline-flex; }
+  .oublier:hover { color: #b3261e; }
 `;
 
+// Rapprochement des déclencheurs commun et personnel : comme cleDeclencheur_ dans Code.gs, sans
+// tenir compte de la casse, des espaces ni du préfixe (« /gn4 » = « GN4 »).
+function cleTrigger(t) {
+  return String(t || '').replace(/^[\/;:!]+/, '').replace(/\s+/g, '').toUpperCase();
+}
+
 function construireRangee(champ, entree) {
-  const triggers = entree.triggers.filter(t => LOCAL_SNIPPETS.some(s => s.trigger === t));
+  // Pour chaque déclencheur, comme dans Aviso : le « + » gris OU l'icône jaune (jamais les deux),
+  // puis l'icône bleue s'il existe un snippet commun de même déclencheur.
+  const groupes = entree.triggers.map(trigger => ({
+    trigger,
+    perso: LOCAL_SNIPPETS.find(x => x.trigger === trigger),
+    commun: SNIPPETS.find(x => cleTrigger(x.trigger) === cleTrigger(trigger))
+  }));
+  const signature = groupes.map(g => `${g.trigger}:${g.perso ? 1 : 0}${g.commun ? 1 : 0}`).join('|');
   const existant = hotesChamps.get(champ);
-  const signature = triggers.join('\u0000');
   if (existant && existant.signature === signature) return;
   if (existant) existant.hote.remove();
   hotesChamps.delete(champ);
-  if (!triggers.length) return;
+  if (!groupes.length) return;
 
   const hote = document.createElement('div');
   hote.setAttribute(CHAMP_HOTE_ATTR, '');
   const root = hote.attachShadow({ mode: 'open' });
   root.innerHTML = `<style>${CHAMP_CSS}</style><div class="rangee"></div>`;
   const rangee = root.querySelector('.rangee');
-  triggers.forEach(trigger => {
+
+  const bouton = (svg, titre, action) => {
     const b = document.createElement('button');
     b.type = 'button';
-    b.textContent = trigger;
-    b.addEventListener('mouseenter', () => {
-      const s = LOCAL_SNIPPETS.find(x => x.trigger === trigger);
-      b.title = s ? `Ajouter « ${trigger} » à la fin du champ :\n\n${tronquerPourInfobulle(s.content)}` : '';
-    });
+    b.innerHTML = svg;
+    b.addEventListener('mouseenter', () => { b.title = titre(); });
     b.addEventListener('mousedown', (e) => e.preventDefault()); // garde le focus du champ
-    b.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const s = LOCAL_SNIPPETS.find(x => x.trigger === trigger);
-      if (!s) return;
-      ajouterAuChamp(champ, resolveContent(s.content));
-      compterUsage('admin_champ_insertion');
-    });
-    rangee.appendChild(b);
+    b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); action(); });
+    return b;
+  };
+  // Le snippet est relu au clic (et l'infobulle au survol) : il a pu changer depuis la pose.
+  const inserer = (trouver, cle) => () => {
+    const snippet = trouver();
+    if (!snippet) return;
+    ajouterAuChamp(champ, resolveContent(snippet.content));
+    compterUsage(cle);
+  };
+  const apercu = (libelle, trouver, trigger) => () => {
+    const snippet = trouver();
+    return snippet ? `${libelle} "${trigger}" :\n${tronquerPourInfobulle(resolveContent(snippet.content))}` : '';
+  };
+
+  groupes.forEach(g => {
+    const groupe = document.createElement('span');
+    groupe.className = 'groupe';
+    const trouverPerso = () => LOCAL_SNIPPETS.find(x => x.trigger === g.trigger);
+    const trouverCommun = () => SNIPPETS.find(x => cleTrigger(x.trigger) === cleTrigger(g.trigger));
+    if (g.perso) {
+      groupe.appendChild(bouton(ICONE_CHAMP_PERSO,
+        apercu('Ajouter le contenu du snippet du Clausier Personnel', trouverPerso, g.trigger),
+        inserer(trouverPerso, 'admin_champ_perso')));
+    } else {
+      groupe.appendChild(bouton(ICONE_CHAMP_PLUS,
+        () => `Créer le snippet "${g.trigger}" dans le Clausier Personnel, à partir du texte de ce champ`,
+        () => {
+          champClicDroit = champ;
+          ouvrirCreationClicDroit('perso', '', null, g.trigger);
+          compterUsage('admin_champ_plus');
+        }));
+    }
+    if (g.commun) {
+      groupe.appendChild(bouton(ICONE_CHAMP_COMMUN,
+        apercu('Ajouter le contenu du snippet du Clausier Commun', trouverCommun, g.trigger),
+        inserer(trouverCommun, 'admin_champ_commun')));
+    }
+    rangee.appendChild(groupe);
   });
+
   const oublier = document.createElement('button');
   oublier.type = 'button';
   oublier.className = 'oublier';
   oublier.textContent = '✕';
-  oublier.title = 'Ne plus proposer de snippet sur ce champ (les snippets restent dans le Clausier Personnel)';
+  oublier.title = 'Ne plus proposer de snippet sur ce champ (les snippets restent dans les clausiers)';
   oublier.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -2146,8 +2206,8 @@ function chargerChampsRetenus() {
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local') return;
   if (changes.champsRetenus || changes.adminCode) chargerChampsRetenus();
-  // localSnippets est relu par loadSnippets : on reconstruit après, à la prochaine passe.
-  else if (changes.localSnippets) scheduleScanChamps();
+  // Les deux clausiers sont relus par le listener du haut : on reconstruit à la passe suivante.
+  else if (changes.localSnippets || changes.snippets) scheduleScanChamps();
 });
 if (document.body) chargerChampsRetenus();
 else document.addEventListener('DOMContentLoaded', chargerChampsRetenus);

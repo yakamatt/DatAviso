@@ -743,7 +743,9 @@ const STATS_LIBELLES = {
   admin_statistiques: 'Administration : ouvertures de la page de statistiques',
   admin_clic_droit_perso: 'Administration : clic droit, snippet personnel',
   admin_clic_droit_commun: 'Administration : clic droit, proposition au Clausier Commun',
-  admin_champ_insertion: 'Administration : snippet ajouté depuis un champ retenu',
+  admin_champ_plus: 'Administration : champ retenu, « + » (création)',
+  admin_champ_perso: 'Administration : champ retenu, icône jaune (Clausier Personnel)',
+  admin_champ_commun: 'Administration : champ retenu, icône bleue (Clausier Commun)',
   admin_champ_oubli: 'Administration : champ retenu oublié'
 };
 
