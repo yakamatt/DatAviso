@@ -10,6 +10,56 @@ compterUsage('popup');
 chrome.storage.sync.get(['syncSettings'], (res) => {
   const s = res.syncSettings || {};
   document.getElementById('open-sheet-link').href = s.sheetUrl || DEFAULT_SHEET_URL;
+  document.getElementById('admin-revue-tableau').href = s.sheetUrl || DEFAULT_SHEET_URL;
+});
+
+// ---------- Mode administrateur (#119) ----------
+// Section affichée seulement quand le mode est actif sur ce poste. Les compteurs s'affichent
+// d'abord tels que la dernière synchro les a laissés, puis sont redemandés au tableau.
+function renderAdmin(etat) {
+  const e = etat || { installations: 0, revue: 0 };
+  const pastille = (id, n, couleur) => {
+    const el = document.getElementById(id);
+    el.textContent = n;
+    el.className = `pastille ${n ? couleur : 'zero'}`;
+  };
+  pastille('admin-inst-n', e.installations, 'rouge');
+  pastille('admin-revue-n', e.revue, 'jaune');
+  document.getElementById('admin-inst-libelle').textContent =
+    `nouvelle${e.installations > 1 ? 's' : ''} installation${e.installations > 1 ? 's' : ''}`;
+  document.getElementById('admin-revue-libelle').textContent =
+    `proposition${e.revue > 1 ? 's' : ''} à revoir`;
+  document.getElementById('admin-inst-vu').hidden = !e.installations;
+  document.getElementById('admin-revue-tableau').hidden = !e.revue;
+}
+
+chrome.storage.local.get(['adminCode', 'adminEtat'], (res) => {
+  if (!res.adminCode) return;
+  document.getElementById('admin').hidden = false;
+  renderAdmin(res.adminEtat);
+  const statut = document.getElementById('admin-status');
+  chrome.runtime.sendMessage({ type: 'ADMIN', demande: 'etat' }, (rep) => {
+    if (chrome.runtime.lastError) return;
+    if (rep && rep.ok) { renderAdmin(rep.etat); statut.textContent = ''; }
+    else statut.textContent = `⚠️ ${(rep && rep.error) || 'Tableau injoignable'}`;
+  });
+});
+
+document.getElementById('admin-inst-vu').addEventListener('click', () => {
+  chrome.runtime.sendMessage({ type: 'ADMIN', demande: 'installations-vues' }, () => {
+    void chrome.runtime.lastError;
+    chrome.storage.local.get(['adminEtat'], (r) => renderAdmin(r.adminEtat));
+  });
+  compterUsage('admin_installations_vues');
+});
+
+document.getElementById('admin-revue-tableau').addEventListener('click', () => {
+  compterUsage('admin_revue_tableau');
+});
+
+document.getElementById('admin-stats').addEventListener('click', () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL('statistiques.html') });
+  window.close();
 });
 
 // Clausier Personnel : géré dans la page Paramètres, ouverte directement sur sa section.

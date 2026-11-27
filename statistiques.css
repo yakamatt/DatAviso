@@ -1,0 +1,74 @@
+/* Page de statistiques du mode administrateur (#119). Mêmes jetons que les Paramètres. */
+:root {
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --bg: #f2f4fb;
+  --surface: #ffffff;
+  --ink: #16213d;
+  --ink-muted: #5b6a8f;
+  --ink-faint: #97a3c2;
+  --border: #dde3f3;
+  --accent: #2d51b2;
+  --accent-hover: #1f3d8f;
+  --accent-ink: #ffffff;
+  --accent-wash: #e6ebfa;
+  --grille: #e8ecf6;
+  --shadow: 0 1px 2px rgba(15, 25, 55, 0.06), 0 4px 14px rgba(15, 25, 55, 0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1220;
+    --surface: #161d33;
+    --ink: #e8ecf7;
+    --ink-muted: #8f9ac0;
+    --ink-faint: #576088;
+    --border: #26304e;
+    --accent: #6a8ce0;
+    --accent-hover: #8aa6ea;
+    --accent-ink: #0b1224;
+    --accent-wash: #1c2647;
+    --grille: #222b47;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-sans); }
+.page { max-width: 1100px; margin: 0 auto; padding: 24px 16px 40px; display: flex; flex-direction: column; gap: 16px; }
+.entete { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+h1 { margin: 0; display: flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: 18px; }
+h1 img { width: 24px; height: 24px; border-radius: 6px; }
+h2 { margin: 0 0 4px; font-family: var(--font-mono); font-size: 13.5px; }
+.hint { margin: 0; color: var(--ink-muted); font-size: 12.5px; line-height: 1.5; }
+.pied { text-align: center; }
+.filtres { display: flex; flex-wrap: wrap; gap: 6px; }
+.filtres button {
+  border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+  padding: 6px 12px; border-radius: 999px; font: 600 12.5px var(--font-sans); cursor: pointer;
+}
+.filtres button.actif { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.filtres button.secondaire { background: var(--accent-wash); color: var(--accent-hover); border-color: transparent; }
+.tuiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.tuile, .carte { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); }
+.tuile { padding: 14px 16px; }
+.tuile .valeur { font: 700 28px var(--font-mono); font-variant-numeric: tabular-nums; }
+.tuile .libelle { color: var(--ink-muted); font-size: 12.5px; }
+.carte { padding: 16px; min-width: 0; }
+.deux-colonnes { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.graphe { margin-top: 10px; }
+.graphe svg { display: block; width: 100%; height: auto; overflow: visible; }
+.graphe .vide { color: var(--ink-faint); font-size: 12.5px; padding: 24px 0; text-align: center; }
+svg text { fill: var(--ink-muted); font: 11px var(--font-sans); font-variant-numeric: tabular-nums; }
+svg .valeur-barre { fill: var(--ink); font-weight: 600; }
+svg .grille { stroke: var(--grille); stroke-width: 1; }
+svg .axe { stroke: var(--border); stroke-width: 1; }
+svg .barre { fill: var(--accent); }
+svg .cible { fill: transparent; cursor: default; }
+svg .cible:hover + .barre, svg g.survol .barre { fill: var(--accent-hover); }
+.detail { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+.detail th, .detail td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+.detail th { color: var(--ink-muted); font-weight: 600; font-size: 12px; }
+.detail .nombre { text-align: right; font-variant-numeric: tabular-nums; }
+.infobulle {
+  position: fixed; pointer-events: none; z-index: 10; background: var(--ink); color: var(--surface);
+  padding: 6px 9px; border-radius: 6px; font-size: 12px; line-height: 1.4; max-width: 280px;
+}
+.infobulle[hidden] { display: none; }

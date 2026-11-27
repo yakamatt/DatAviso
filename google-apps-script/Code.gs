@@ -725,7 +725,10 @@ const STATS_LIBELLES = {
   parametres: 'Ouvertures des Paramètres',
   tutoriel: 'Ouvertures du tutoriel',
   admin_activation: 'Mode administrateur activé',
-  admin_desactivation: 'Mode administrateur désactivé'
+  admin_desactivation: 'Mode administrateur désactivé',
+  admin_installations_vues: 'Administration : nouvelles installations marquées vues',
+  admin_revue_tableau: 'Administration : tableau ouvert depuis le compteur de revue',
+  admin_statistiques: 'Administration : ouvertures de la page de statistiques'
 };
 
 function getStatsSheet_() {
@@ -981,14 +984,157 @@ function codeAdminValide_(code) {
   if (essais >= ADMIN_ESSAIS_MAX) return { ok: false, error: 'Trop d\'essais : réessayez dans un quart d\'heure' };
   if (typeof code === 'string' && code && empreinteCode_(sel, code) === attendue) return { ok: true };
   cache.put('adminEssais', String(essais + 1), ADMIN_ESSAIS_DUREE_S);
-  return { ok: false, error: 'Code administrateur refusé' };
+  // « refuse » : ce code-là est faux, l'extension l'oublie. Pas sur un blocage temporaire, qui
+  // désactiverait aussi le poste du garant quand un tiers a épuisé les essais.
+  return { ok: false, error: 'Code administrateur refusé', refuse: true };
 }
 
 // Une demande par fonction du mode administrateur. "verifier" sert à l'activation dans les
 // Paramètres ; les suivantes arrivent avec leurs fonctions (#119).
 function administrer_(body) {
   const acces = codeAdminValide_(body.code);
-  if (!acces.ok) return { ...acces, api: 'admin', refuse: true };
+  if (!acces.ok) return { ...acces, api: 'admin' };
   if (body.demande === 'verifier') return { ok: true, api: 'admin', version: API_VERSION };
+  if (body.demande === 'etat') return { ok: true, api: 'admin', ...etatAdmin_(body) };
+  if (body.demande === 'statistiques') return { ok: true, api: 'admin', ...statistiquesAdmin_() };
   return { ok: false, api: 'admin', error: 'Demande inconnue : ' + body.demande };
+}
+
+// Premier jour où chaque installation a envoyé ses statistiques : c'est sa date d'arrivée. Une
+// installation sans statistiques (case décochée) n'est jamais vue, et une installation revenue
+// après plus de STATS_CONSERVATION_MOIS mois d'absence passe pour nouvelle (ses lignes ont été
+// purgées). Le Ref_User reste dans storage.sync : une réinstallation sur le même compte Chrome
+// n'est pas comptée deux fois.
+function premiersJours_() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(STATS_SHEET_NAME);
+  const premiers = {};
+  if (!sheet || sheet.getLastRow() < 2) return premiers;
+  sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getValues().forEach(r => {
+    const ref = String(r[0]), jour = String(r[1]);
+    if (!ref || !/^\d{4}-\d{2}-\d{2}$/.test(jour)) return;
+    if (!premiers[ref] || jour < premiers[ref]) premiers[ref] = jour;
+  });
+  return premiers;
+}
+
+// Propositions que le garant n'a pas encore sous les yeux : un texte de Clausier Personnel qui
+// diffère du texte commun, n'a été ni adopté ni ignoré (Revue_Traités), et ne figure pas dans
+// l'onglet "Revue" actuel. Même filtre que preparerRevue : quand ce nombre n'est pas nul, préparer
+// la revue fera apparaître du nouveau.
+function propositionsEnAttente_() {
+  const communs = lireSnippetsCommuns_();
+  const traites = lireTraites_();
+  const dejaEnRevue = {};
+  const revue = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REVUE_SHEET_NAME);
+  if (revue) {
+    if (revue.getLastRow() >= 2) {
+      const valeurs = revue.getRange(1, 1, revue.getLastRow(), revue.getLastColumn()).getValues();
+      const cCle = valeurs[0].indexOf('Clé'), cProp = valeurs[0].indexOf('Proposition'),
+        cVar = valeurs[0].indexOf('Variantes (JSON)');
+      if (cCle >= 0 && cProp >= 0) {
+        valeurs.slice(1).forEach(r => {
+          const cle = String(r[cCle]);
+          if (!cle) return;
+          const textes = variantesLigne_(cVar >= 0 ? r[cVar] : '', r[cProp]);
+          textes.forEach(t => { (dejaEnRevue[cle] = dejaEnRevue[cle] || {})[texteNormalise_(t)] = true; });
+        });
+      }
+    }
+  }
+  const vues = {};
+  let n = 0;
+  // getSheetByName et non getBackupSheet_ : une demande du mode administrateur ne crée rien.
+  const sauvegardes = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BACKUP_SHEET_NAME);
+  if (!sauvegardes) return 0;
+  sauvegardes.getDataRange().getValues().slice(1).forEach(r => {
+    const cle = cleDeclencheur_(r[0]);
+    const texte = texteNormalise_(r[1]);
+    if (!cle || !texte) return;
+    const commun = communs[cle];
+    if (commun && texteNormalise_(commun.content) === texte) return;
+    if (traites[cle] && traites[cle][texte]) return;
+    if (dejaEnRevue[cle] && dejaEnRevue[cle][texte]) return;
+    const id = cle + '\u0000' + texte;
+    if (vues[id]) return; // la même proposition chez plusieurs utilisateurs compte une fois
+    vues[id] = true;
+    n++;
+  });
+  return n;
+}
+
+// Pour les compteurs de l'icône : les installations arrivées depuis `depuis` (inclus, par leur
+// Ref_User, que l'extension retient une fois vues) et le nombre de propositions à revoir.
+function etatAdmin_(body) {
+  const depuis = /^\d{4}-\d{2}-\d{2}$/.test(String(body.depuis)) ? String(body.depuis) : '0000-00-00';
+  const premiers = premiersJours_();
+  const installations = Object.keys(premiers).filter(ref => premiers[ref] >= depuis)
+    .map(ref => ({ ref, jour: premiers[ref] }));
+  return { installations, revue: propositionsEnAttente_() };
+}
+
+// Page de statistiques de l'extension : les totaux par jour, jamais les lignes par utilisateur.
+// Les installations y restent anonymes et ne sont que comptées.
+function statistiquesAdmin_() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(STATS_SHEET_NAME);
+  const reponse = { jours: [], versions: {}, libelles: STATS_LIBELLES, regroupements: STATS_REGROUPEMENTS,
+    conservationMois: STATS_CONSERVATION_MOIS };
+  if (!sheet || sheet.getLastRow() < 2) return reponse;
+  const valeurs = sheet.getDataRange().getValues();
+  const cles = valeurs[0].map(String).slice(STATS_COLONNES_FIXES.length);
+  const premiers = premiersJours_();
+  const parJour = {};
+  const derniereVersion = {};
+  valeurs.slice(1).forEach(r => {
+    const ref = String(r[0]), jour = String(r[1]);
+    if (!ref || !/^\d{4}-\d{2}-\d{2}$/.test(jour)) return;
+    const j = parJour[jour] = parJour[jour] || { date: jour, installes: 0, actifs: 0, nouveaux: 0, totaux: {} };
+    j.installes++;
+    if (premiers[ref] === jour) j.nouveaux++;
+    let usage = 0;
+    cles.forEach((cle, i) => {
+      const n = Number(r[STATS_COLONNES_FIXES.length + i]) || 0;
+      if (n) { j.totaux[cle] = (j.totaux[cle] || 0) + n; usage += n; }
+    });
+    if (usage) j.actifs++;
+    if (r[2] && (!derniereVersion[ref] || derniereVersion[ref].jour <= jour)) derniereVersion[ref] = { v: String(r[2]), jour };
+  });
+  reponse.jours = Object.keys(parJour).sort().map(d => parJour[d]);
+
+  // Installations et utilisateurs DISTINCTS par semaine et sur les périodes de la page : la
+  // somme des jours compterait un même poste autant de fois qu'il a servi.
+  const aujourdhui = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  const ilYa = n => Utilities.formatDate(new Date(Date.now() - (n - 1) * 86400000), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  const PERIODES = [7, 30, 90, 365];
+  const seuils = PERIODES.map(ilYa);
+  const parPeriode = PERIODES.map(() => ({ installes: {}, actifs: {} }));
+  const parSemaine = {};
+  valeurs.slice(1).forEach(r => {
+    const ref = String(r[0]), jour = String(r[1]);
+    if (!ref || !/^\d{4}-\d{2}-\d{2}$/.test(jour) || jour > aujourdhui) return;
+    const actif = cles.some((_, i) => Number(r[STATS_COLONNES_FIXES.length + i]) > 0);
+    const sem = semaineIso_(jour);
+    const w = parSemaine[sem.cle] = parSemaine[sem.cle] || { cle: sem.cle, libelle: sem.libelle, installes: {}, actifs: {}, nouveaux: 0 };
+    w.installes[ref] = true;
+    if (actif) w.actifs[ref] = true;
+    if (premiers[ref] === jour) w.nouveaux++;
+    seuils.forEach((seuil, k) => {
+      if (jour < seuil) return;
+      parPeriode[k].installes[ref] = true;
+      if (actif) parPeriode[k].actifs[ref] = true;
+    });
+  });
+  reponse.semaines = Object.keys(parSemaine).sort().map(k => {
+    const w = parSemaine[k];
+    return { cle: w.cle, libelle: w.libelle, installes: Object.keys(w.installes).length,
+      actifs: Object.keys(w.actifs).length, nouveaux: w.nouveaux };
+  });
+  reponse.periodes = {};
+  PERIODES.forEach((n, k) => {
+    reponse.periodes[n] = { depuis: seuils[k], installes: Object.keys(parPeriode[k].installes).length,
+      actifs: Object.keys(parPeriode[k].actifs).length,
+      nouveaux: Object.keys(premiers).filter(ref => premiers[ref] >= seuils[k]).length };
+  });
+  reponse.aujourdhui = aujourdhui;
+  Object.values(derniereVersion).forEach(x => { reponse.versions[x.v] = (reponse.versions[x.v] || 0) + 1; });
+  return reponse;
 }
