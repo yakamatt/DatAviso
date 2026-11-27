@@ -9,235 +9,155 @@
 <body>
   <header class="barre">
     <span class="marque"><img src="icons/icon32.png" alt="" /> DatAviso</span>
-    <span class="compteur" id="compteur"></span>
-    <button type="button" class="passer" id="passer">Passer le tutoriel</button>
+    <button type="button" class="passer" id="passer">Fermer le tutoriel</button>
   </header>
 
-  <main class="scene">
-    <!-- 1. Bienvenue -->
-    <section class="etape" data-titre="Bienvenue">
-      <div class="texte">
-        <p class="sur-titre">Bienvenue 👋</p>
-        <h1>Rédigez vos rapports AVISO <em>beaucoup</em> plus vite</h1>
-        <p>DatAviso remplace un raccourci court par un texte complet, et ajoute à Aviso des icônes qui insèrent les dispositions types en un clic.</p>
-        <p>Une minute pour faire le tour : suivez les flèches.</p>
+  <main class="page">
+    <!-- 1. Les clausiers -->
+    <section class="partie">
+      <div class="entete-partie">
+        <p class="sur-titre">1 · Les clausiers</p>
+        <h1>Vos textes types, en un clic sur Aviso</h1>
+        <p>Sur chaque ligne dont le Référentiel porte un code (<code>GN 4</code>, <code>CO 24</code>…), des icônes apparaissent au-dessus de « Dispositions réalisées ». Un clic ajoute le texte <strong>à la suite</strong> de ce qui est déjà écrit, rien n'est remplacé. Survolez une icône pour relire le texte avant de l'insérer.</p>
       </div>
-      <div class="visuel">
-        <div class="maquette navigateur">
-          <div class="nav-barre">
-            <span class="pastilles"><i></i><i></i><i></i></span>
-            <span class="nav-adresse">aviso2.bureauveritas.com</span>
-            <span class="nav-icones">🧩 <img src="icons/icon16.png" alt="" class="epingle" /></span>
-          </div>
-          <div class="nav-corps epingle-aide">
-            <div class="bulle haut-droite">📌 Épinglez l'extension : cliquez sur 🧩 puis sur l'épingle, son icône reste à portée de main.</div>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- 2. Expansion au clavier -->
-    <section class="etape" data-titre="Le raccourci">
-      <div class="texte">
-        <p class="sur-titre">Étape 1 · Au clavier</p>
-        <h1>Tapez un déclencheur, il devient un texte</h1>
-        <p>Un déclencheur commence par <code>/</code>. Après une courte pause, il se remplace tout seul par son contenu.</p>
-        <ul class="puces">
-          <li>✅ Dans tous les champs de texte : Aviso, Gmail, formulaires…</li>
-          <li>✅ Y compris le champ <strong>Remarque</strong> d'Aviso</li>
-          <li>✅ <code>{date}</code> et <code>{time}</code> deviennent la date et l'heure du jour</li>
-        </ul>
+      <div class="maquette aviso">
+        <table>
+          <thead><tr><th>Référentiel</th><th>Dispositions réalisées</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="ref">GN 4 - Procédure d'adaptation</td>
+              <td class="dispo">
+                <div class="icones">
+                  <span class="ico" data-ico="perso"><img src="icons/local16.svg" alt="" /></span>
+                  <span class="ico" data-ico="crayon"><img src="icons/edit16.svg" alt="" /></span>
+                  <span class="ico" data-ico="commun"><img src="icons/icon16.png" alt="" /></span>
+                  <span class="ico" data-ico="loi"><img src="icons/sitesecurite32.png" alt="" /></span>
+                  <span class="ico" data-ico="loi"><img src="icons/legifrance32.png" alt="" /></span>
+                </div>
+                <div class="zone">Les dispositions prévues ont été vérifiées…</div>
+              </td>
+            </tr>
+            <tr>
+              <td class="ref">GN 13 - Ascenseurs</td>
+              <td class="dispo">
+                <div class="icones">
+                  <span class="ico" data-ico="plus"><img src="icons/add16.svg" alt="" /></span>
+                  <span class="ico" data-ico="commun"><img src="icons/icon16.png" alt="" /></span>
+                  <span class="ico" data-ico="loi"><img src="icons/sitesecurite32.png" alt="" /></span>
+                  <span class="ico" data-ico="loi"><img src="icons/legifrance32.png" alt="" /></span>
+                </div>
+                <div class="zone">Ascenseur à usage des personnes…</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <div class="visuel">
-        <div class="maquette champ">
-          <div class="champ-libelle">Dispositions réalisées</div>
-          <div class="champ-zone" id="demo-frappe"><span class="demo-texte"></span><span class="curseur"></span></div>
-          <div class="champ-note">⏱️ Remplacé après 0,5 s de pause (réglable dans les Paramètres)</div>
-        </div>
-      </div>
-    </section>
 
-    <!-- 3. Deux clausiers -->
-    <section class="etape" data-titre="Deux clausiers">
-      <div class="texte">
-        <p class="sur-titre">Étape 2 · D'où viennent les textes</p>
-        <h1>Deux clausiers, le vôtre passe en premier</h1>
-        <p>Si les deux ont le même déclencheur, c'est votre snippet personnel qui s'insère.</p>
-        <div class="encart">
-          <strong>🛟 Sauvegarde anonyme</strong>
-          <p>Une copie anonyme de votre Clausier Personnel est envoyée au tableau du Clausier Commun, pour l'enrichir des formulations utiles à tous. Elle ne permet pas de restaurer vos snippets : <strong>exportez-les régulièrement</strong> (Paramètres › Clausier Personnel). Désactivable dans Paramètres avancés.</p>
-        </div>
-      </div>
-      <div class="visuel deux-cartes">
-        <div class="carte-clausier commun">
-          <img src="icons/icon32.png" alt="" />
-          <h2>Clausier Commun</h2>
-          <p>Partagé par toute l'équipe, dans un Google Sheets.</p>
-          <p class="detail">🔄 Mis à jour automatiquement toutes les heures</p>
-        </div>
+      <div class="deux-cartes">
         <div class="carte-clausier personnel">
-          <img src="icons/local16.svg" alt="" />
-          <h2>Clausier Personnel</h2>
-          <p>Vos propres textes, créés sur Aviso ou dans les Paramètres.</p>
-          <p class="detail">⭐ Prioritaire · 📤 import / export .xlsx et .csv</p>
+          <h2><img src="icons/local16.svg" alt="" /> Clausier Personnel</h2>
+          <p class="chapo">Vos propres textes, rangés dans votre navigateur. À déclencheur égal, il passe avant le Clausier Commun.</p>
+          <ul class="actions">
+            <li data-ico="plus"><span class="tuile"><img src="icons/add16.svg" alt="" /></span><span><strong>Créer</strong> le « + » gris, sur une ligne sans snippet personnel, enregistre le texte de la cellule comme votre snippet pour ce code</span></li>
+            <li data-ico="perso"><span class="tuile"><img src="icons/local16.svg" alt="" /></span><span><strong>Insérer le texte</strong> l'icône jaune, qui prend ensuite la place du « + »</span></li>
+            <li data-ico="crayon"><span class="tuile"><img src="icons/edit16.svg" alt="" /></span><span><strong>Modifier</strong> le crayon jaune, sans quitter Aviso. Tous vos snippets sont aussi dans popup › 📒 Modifier le Clausier Personnel</span></li>
+          </ul>
+          <p class="note">💾 Il vit dans votre navigateur : exportez-le de temps en temps (Paramètres › Clausier Personnel).</p>
+        </div>
+        <div class="carte-clausier commun">
+          <h2><img src="icons/icon16.png" alt="" /> Clausier Commun</h2>
+          <p class="chapo">Les textes partagés par l'équipe, dans un Google Sheets, mis à jour automatiquement.</p>
+          <ul class="actions">
+            <li><span class="tuile">📄</span><span><strong>Créer</strong> une ligne dans le tableau partagé : popup › 📄 Consulter le Clausier Commun</span></li>
+            <li data-ico="commun"><span class="tuile"><img src="icons/icon16.png" alt="" /></span><span><strong>Insérer le texte</strong> l'icône bleue, sur les lignes dont le code a un texte commun</span></li>
+            <li><span class="tuile">✏️</span><span><strong>Modifier</strong> directement dans le même tableau ; le changement arrive chez tous à la mise à jour suivante</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="bloc-ligne">
+        <div class="texte">
+          <h2><span class="tuile double"><img src="icons/sitesecurite32.png" alt="" /><img src="icons/legifrance32.png" alt="" /></span> Boutons Réglementation</h2>
+          <p>Ils ouvrent l'article de la ligne dans un nouvel onglet, sur <strong>sitesecurite.com</strong> et sur <strong>Légifrance</strong> : trames ERP, Habitation et BUP (code du travail), et Légifrance seul pour l'accessibilité HAND. Ils s'affichent même sans snippet. Paramètres avancés › Liens réglementaires choisit les sources de chaque trame.</p>
+        </div>
+      </div>
+
+      <div class="bloc-ligne bonus">
+        <div class="texte">
+          <p class="sur-titre">Bonus · Au clavier</p>
+          <h2>Tapez un déclencheur, il devient un texte</h2>
+          <p>Chaque snippet a un déclencheur, comme <code>/GN4</code>. Tapez-le dans n'importe quel champ (Aviso, champ <strong>Remarque</strong> compris, Gmail, formulaires…) : après une courte pause, il se remplace tout seul par son texte. <code>{date}</code> et <code>{time}</code> deviennent la date et l'heure du jour.</p>
+        </div>
+        <div class="maquette champ">
+          <div class="champ-libelle">Exemple · Dispositions réalisées</div>
+          <div class="champ-zone" id="demo-frappe"><span class="demo-texte"></span><span class="curseur"></span></div>
+          <div class="champ-note">⏱️ Remplacé après une courte pause (réglable dans les Paramètres)</div>
         </div>
       </div>
     </section>
 
-    <!-- 4. Icônes Aviso -->
-    <section class="etape" data-titre="Les icônes Aviso">
-      <div class="texte">
-        <p class="sur-titre">Étape 3 · Sur Aviso</p>
-        <h1>Un clic pour remplir « Dispositions réalisées »</h1>
-        <p>Sur chaque ligne dont le Référentiel porte un code (<code>GN 4</code>, <code>CO 24</code>…), des icônes apparaissent au-dessus du champ.</p>
-        <p>Un clic ajoute le texte <strong>à la suite</strong> de ce qui est déjà écrit : rien n'est remplacé. Survolez une icône pour relire le texte avant de l'insérer.</p>
+    <!-- 2. Améliorations ergonomiques Aviso -->
+    <section class="partie">
+      <div class="entete-partie">
+        <p class="sur-titre">2 · Améliorations ergonomiques Aviso</p>
+        <h1>Votre affaire à portée de clic</h1>
       </div>
-      <div class="visuel">
-        <div class="maquette aviso">
-          <table>
-            <thead><tr><th>Référentiel</th><th>Dispositions réalisées</th></tr></thead>
-            <tbody>
-              <tr>
-                <td class="ref">GN 4 - Procédure d'adaptation</td>
-                <td class="dispo">
-                  <div class="icones">
-                    <span class="ico" data-ico="perso"><img src="icons/local16.svg" alt="" /></span>
-                    <span class="ico" data-ico="crayon"><img src="icons/edit16.svg" alt="" /></span>
-                    <span class="ico" data-ico="commun"><img src="icons/icon16.png" alt="" /></span>
-                    <span class="ico" data-ico="loi"><img src="icons/sitesecurite32.png" alt="" /></span>
-                    <span class="ico" data-ico="loi"><img src="icons/legifrance32.png" alt="" /></span>
-                    <span class="ico" data-ico="dataviso"><img src="icons/imported16.svg" alt="" /></span>
-                    <span class="ico corbeille" data-ico="corbeille"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5h11M6.5 4.5V3a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1.5M4 4.5l.7 8.6a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-8.6M6.75 7v4.5M9.25 7v4.5"/></svg></span>
-                  </div>
-                  <div class="zone">Les dispositions prévues ont été vérifiées…</div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="legende-icones">
-          <p class="groupe">Insérer un texte</p>
-          <ul>
-            <li data-ico="perso"><span class="tuile"><img src="icons/local16.svg" alt="" /></span><span><strong>Votre snippet</strong> celui de votre Clausier Personnel pour ce code</span></li>
-            <li data-ico="commun"><span class="tuile"><img src="icons/icon16.png" alt="" /></span><span><strong>Clausier Commun</strong> le texte partagé par l'équipe</span></li>
-            <li data-ico="dataviso"><span class="tuile"><img src="icons/imported16.svg" alt="" /></span><span><strong>DatAviso AI</strong> les données du dossier que vous avez importées</span></li>
-          </ul>
-          <p class="groupe">Gérer vos snippets</p>
-          <ul>
-            <li data-ico="crayon"><span class="tuile"><img src="icons/edit16.svg" alt="" /></span><span><strong>Modifier</strong> votre snippet, sans quitter Aviso</span></li>
-            <li><span class="tuile"><img src="icons/add16.svg" alt="" /></span><span><strong>Créer</strong> un snippet à partir du texte de la cellule. Il remplace l'icône jaune tant que vous n'avez pas de snippet pour ce code</span></li>
-          </ul>
-          <p class="groupe">Et aussi</p>
-          <ul>
-            <li data-ico="loi"><span class="tuile double"><img src="icons/sitesecurite32.png" alt="" /><img src="icons/legifrance32.png" alt="" /></span><span><strong>Réglementation</strong> l'article sur sitesecurite.com et sur Légifrance, pour les trames ERP, Habitation et BUP (code du travail), et Légifrance seul pour l'accessibilité HAND (ERP, logements, lieux de travail). Les Paramètres avancés choisissent les sources de chaque trame</span></li>
-            <li data-ico="corbeille"><span class="tuile corbeille"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5h11M6.5 4.5V3a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1.5M4 4.5l.7 8.6a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-8.6M6.75 7v4.5M9.25 7v4.5"/></svg></span><span><strong>Effacer</strong> le champ. Un second clic annule</span></li>
-            <li><span class="tuile avis"><span class="pastille-avis">Fav.</span></span><span><strong>Choisir l'avis</strong> d'un clic, sur les boutons colorés posés au-dessus du menu déroulant : <span class="avis-vert">Favorable</span>, <span class="avis-orange">Observation</span>, les autres en gris. De même sur les menus de conformité : <span class="avis-vert">Conforme</span>, <span class="avis-orange">Non conforme</span>. Ils remplacent le menu déroulant ; les Paramètres avancés permettent de revenir au menu d'origine</span></li>
-          </ul>
-        </div>
-      </div>
-    </section>
 
-    <!-- 5. DatAviso AI -->
-    <section class="etape" data-titre="DatAviso AI">
-      <div class="texte">
-        <p class="sur-titre">Étape 4 · Vos données de dossier</p>
-        <h1>DatAviso AI : les données du dossier en un clic</h1>
-        <p>Importez le fichier <code>.txt</code> produit par DatAviso AI depuis le popup de l'icône. Sur chaque ligne dont le Référentiel y figure, une icône verte ajoute ces données dans « Dispositions réalisées ».</p>
-      </div>
-      <div class="visuel flux">
-        <div class="maquette mini-popup">
-          <div class="mp-titre"><img src="icons/icon16.png" alt="" /> DatAviso</div>
-          <div class="mp-section">📥 DatAviso AI</div>
-          <div class="mp-bouton clair">📄 Importer un fichier .txt</div>
+      <div class="bloc-ligne">
+        <div class="texte">
+          <h2>Ouvre les dossiers relatifs à votre affaire</h2>
+          <p>À partir du numéro d'affaire, trois liens :</p>
+          <ul class="puces">
+            <li><span class="badge">SGO</span> la fiche de l'affaire dans SGO</li>
+            <li><span class="badge">ShP</span> la recherche du numéro dans SharePoint</li>
+            <li><span class="badge">C:\</span> la recherche dans l'Explorateur Windows</li>
+          </ul>
+          <p class="discret">Sur la liste Plans Affaires et dans la barre bleue d'une affaire ouverte. Chacun se désactive dans Paramètres avancés.</p>
         </div>
-        <div class="fleche">➜</div>
-        <div class="maquette petite-ligne">
-          <span class="ref">GN 4</span>
-          <span class="ico vert"><img src="icons/imported16.svg" alt="" /></span>
-          <span class="zone">Établissement de type L, 2e catégorie…</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- 6. Liens d'affaire -->
-    <section class="etape" data-titre="Liens d'affaire">
-      <div class="texte">
-        <p class="sur-titre">Étape 5 · Retrouver l'affaire</p>
-        <h1>SGO, SharePoint et dossiers en un clic</h1>
-        <p>À partir du numéro d'affaire, trois liens ouvrent :</p>
-        <ul class="puces">
-          <li><span class="badge">SGO</span> la fiche de l'affaire dans SGO</li>
-          <li><span class="badge">ShP</span> la recherche du numéro dans SharePoint</li>
-          <li><span class="badge">C:\</span> la recherche dans l'Explorateur Windows</li>
-        </ul>
-        <p>Un clic sur le titre de l'affaire, dans la barre bleue, copie son numéro.</p>
-        <p class="discret">Chacun se désactive dans Paramètres avancés.</p>
-      </div>
-      <div class="visuel pile">
-        <div class="maquette liste-plans">
-          <div class="lp-entete"><span>N° plan affaire</span><span>Actions</span></div>
-          <div class="lp-ligne">
-            <span>29462057 / 1</span>
-            <span class="lp-actions">
-              <span class="loupe">🔍</span>
-              <span class="lp-pile"><span>SGO</span><span>ShP</span><span>C:\</span></span>
-            </span>
+        <div class="pile">
+          <div class="maquette liste-plans">
+            <div class="lp-entete"><span>N° plan affaire</span><span>Actions</span></div>
+            <div class="lp-ligne">
+              <span>29462057 / 1</span>
+              <span class="lp-actions">
+                <span class="loupe">🔍</span>
+                <span class="lp-pile"><span>SGO</span><span>ShP</span><span>C:\</span></span>
+              </span>
+            </div>
           </div>
           <div class="maquette-legende">Liste Plans Affaires : à côté de la loupe</div>
+          <div class="maquette barre-bleue">
+            <span class="bb-titre">29462057 / 1 — Groupe scolaire</span>
+            <span class="bb-liens"><span>SGO</span><span>ShP</span><span>C:\</span></span>
+            <span class="bb-metier">BTS ▾</span>
+          </div>
+          <div class="maquette-legende">Affaire ouverte : dans la barre bleue, à gauche de « BTS »</div>
         </div>
-        <div class="maquette barre-bleue">
-          <span class="bb-titre">29462057 / 1 — Groupe scolaire</span>
-          <span class="bb-liens"><span>SGO</span><span>ShP</span><span>C:\</span></span>
-          <span class="bb-metier">BTS ▾</span>
-        </div>
-        <div class="maquette-legende">Affaire ouverte : dans la barre bleue, à gauche de « BTS »</div>
       </div>
-    </section>
 
-    <!-- 7. Paramètres et avis -->
-    <section class="etape" data-titre="Le popup">
-      <div class="texte">
-        <p class="sur-titre">Étape 6 · Tout est dans l'icône</p>
-        <h1>Le popup, votre point de départ</h1>
-        <p>Cliquez sur l'icône de l'extension pour modifier votre Clausier Personnel, consulter le Clausier Commun, importer DatAviso AI, ou ouvrir les Paramètres.</p>
-        <p>Une idée, un bug ? Le bouton <strong>Donner mon avis</strong> nous l'envoie directement. Et ce tutoriel reste accessible par le lien <strong>🎓 Tutoriel</strong>.</p>
-      </div>
-      <div class="visuel">
-        <div class="maquette mini-popup grand">
-          <div class="mp-titre"><img src="icons/icon16.png" alt="" /> DatAviso <span class="mp-tuto">🎓 Tutoriel</span></div>
-          <div class="mp-bouton">📒 Modifier le Clausier Personnel</div>
-          <div class="mp-bouton clair">📄 Consulter le Clausier Commun</div>
-          <div class="mp-section">📥 DatAviso AI</div>
-          <div class="mp-section">💬 Une remarque, une idée, un bug ?</div>
-          <div class="mp-bouton clair">✉️ Donner mon avis</div>
-          <div class="mp-lien">⚙️ Paramètres</div>
+      <div class="bloc-ligne">
+        <div class="texte">
+          <h2>Un clic sur le titre copie le numéro</h2>
+          <p>Cliquez sur le titre de l'affaire, dans la barre bleue : son numéro est copié, prêt à coller dans un courriel ou une recherche.</p>
+          <p>Et le titre devient <strong>sélectionnable</strong> à la souris : glissez dessus pour copier l'intitulé complet.</p>
+        </div>
+        <div class="pile">
+          <div class="maquette barre-bleue copie">
+            <span class="bb-titre"><span class="bb-selection">29462057 / 1 — Groupe scolaire</span><span class="pointeur">👆</span></span>
+            <span class="bb-metier">BTS ▾</span>
+          </div>
+          <div class="toast-copie">Numéro d'affaire 29462057 copié</div>
         </div>
       </div>
     </section>
 
-    <!-- 8. Partage -->
-    <section class="etape final" data-titre="Partager">
-      <div class="texte centre">
-        <p class="sur-titre">C'est tout ! 🎉</p>
-        <h1>Vous gagnez du temps ? Faites-en gagner à vos collègues</h1>
-        <p>Partagez le lien d'installation : ils l'installent en un clic depuis le Chrome Web Store, et reçoivent les mises à jour automatiquement.</p>
-        <div class="partage">
-          <button type="button" id="share-copy" class="bouton">🔗 Copier le lien</button>
-          <a href="#" id="share-mail" class="bouton clair">✉️ Envoyer par e-mail</a>
-        </div>
-        <p class="statut" id="share-status"></p>
-        <button type="button" class="bouton commencer" id="terminer">C'est parti !</button>
-      </div>
-    </section>
+    <div class="fin">
+      <button type="button" class="bouton" id="terminer">C'est parti !</button>
+      <p class="discret">Ce tutoriel reste accessible par le lien <strong>🎓 Tutoriel</strong> du popup de l'extension.</p>
+    </div>
   </main>
 
-  <nav class="navigation">
-    <button type="button" class="nav-btn" id="precedent">← Précédent</button>
-    <div class="points" id="points"></div>
-    <button type="button" class="nav-btn principal" id="suivant">Suivant →</button>
-  </nav>
-
-  <script src="partage.js"></script>
   <script src="tutoriel.js"></script>
 </body>
 </html>

@@ -1,5 +1,12 @@
 # Changelog — DatAviso
 
+## v2.34.1 — 2026-11-27
+- **Tutoriel simplifié, sur une seule page** (#120). Plus d'étapes à faire défiler : une page en deux parties, qui se lit d'un trait.
+  - **Les clausiers** : une maquette d'Aviso, puis pour chacun des deux clausiers comment **créer**, **insérer le texte** et **modifier** (« + », icône jaune et crayon pour le Clausier Personnel ; tableau partagé et icône bleue pour le Clausier Commun), les **boutons Réglementation**, et en bonus la frappe d'un déclencheur, avec son exemple animé ;
+  - **Améliorations ergonomiques Aviso** : les liens SGO, SharePoint et Explorateur, qui ouvrent les dossiers relatifs à l'affaire, et le clic sur le titre de l'affaire, qui copie son numéro et le rend sélectionnable.
+- Retirés du tutoriel : la bienvenue (épingler l'extension), DatAviso AI, le popup, le partage, la corbeille et les boutons d'avis. Ces fonctions ne changent pas
+- Aucune action nouvelle, donc aucun compteur (l'ouverture du tutoriel reste comptée) ; `Code.gs` ne change pas
+
 ## v2.34.0 — 2026-11-25
 - **Liens Légifrance pour toutes les parties de la trame HAND** (#109). La trame HAND d'Aviso réunit plusieurs textes, une partie par texte ; chaque ligne « Art. N » ouvre maintenant l'article du texte de sa partie :
   - « Accessibilité des ERP et des IOP … neufs » : arrêté du 20 avril 2017, comme avant ;

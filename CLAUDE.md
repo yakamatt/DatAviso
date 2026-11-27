@@ -26,8 +26,8 @@ jamais avoir « testé », dis ce que tu as vérifié et comment.
 | `background.js` | Service worker : synchro Sheets, sauvegarde du Clausier Personnel, statistiques d'utilisation, ouverture du tutoriel, alarmes |
 | `options.js/html/css` | Page Paramètres : Clausier Personnel, DatAviso AI, paramètres avancés |
 | `popup.js/html/css` | Popup de l'icône : lien du tutoriel, liens vers les deux clausiers, import DatAviso AI, formulaire de retour, partage |
-| `tutoriel.js/html/css` | Tutoriel visuel en étapes : maquettes HTML avec les vraies icônes, pas de captures d'écran |
-| `partage.js` | Lien d'installation du Store à copier ou envoyer, partagé par le popup et le tutoriel |
+| `tutoriel.js/html/css` | Tutoriel visuel sur une seule page (clausiers, puis ergonomie Aviso, #120) : maquettes HTML avec les vraies icônes, pas de captures d'écran |
+| `partage.js` | Lien d'installation du Store à copier ou envoyer, utilisé par le popup |
 | `google-apps-script/Code.gs` | Mini-API côté Sheets. **Copie de référence** : le code qui tourne vit dans l'éditeur Apps Script, ce fichier ne se déploie pas tout seul |
 
 ## Invariants — à ne jamais casser
