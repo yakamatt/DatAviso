@@ -263,7 +263,8 @@ const STATS_CLES = [
   'reglage_source_hand_travail_legifrance_off', 'reglage_source_hand_travail_legifrance_on',
   'lien_sgo', 'lien_sharepoint', 'lien_explorateur',
   'import_dataviso', 'clausier_import', 'clausier_export',
-  'popup', 'parametres', 'tutoriel'
+  'popup', 'parametres', 'tutoriel',
+  'admin_activation', 'admin_desactivation'
 ];
 let fileStats = Promise.resolve();
 
@@ -376,6 +377,47 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
+// ---------- Mode administrateur (#119) ----------
+// Réservé au garant du Clausier Commun. Le code administrateur n'est jamais dans l'extension
+// (son code est public) : il est vérifié par le script Apps Script, qui n'en garde qu'une
+// empreinte. Saisi dans les Paramètres, il est retenu dans storage.local (ce poste seulement,
+// jamais synchronisé) et présenté à chaque demande, dans le corps du POST.
+//
+// Le script sert le mode administrateur en lecture seule : aucune demande n'écrit dans le
+// tableau. Un script resté en API 6 ne connaît pas ?probe=admin et renvoie le Clausier Commun :
+// on ne lui envoie alors pas le code.
+async function demandeAdmin(demande, { code } = {}) {
+  const { syncSettings } = await chrome.storage.sync.get(['syncSettings']);
+  const settings = syncSettings || {};
+  if (!settings.webAppUrl) throw new Error('Adresse de l\'application Web non configurée');
+  const codeAdmin = code !== undefined ? code : (await chrome.storage.local.get(['adminCode'])).adminCode;
+  if (!codeAdmin) throw new Error('Mode administrateur inactif');
+
+  const sonde = settings.webAppUrl + (settings.webAppUrl.includes('?') ? '&' : '?') + 'probe=admin';
+  let signature;
+  try {
+    signature = await (await fetch(sonde, { cache: 'no-store' })).json();
+  } catch {
+    throw new Error('Script Google Sheets injoignable ou réponse illisible');
+  }
+  if (Array.isArray(signature) || !signature || signature.api !== 'admin') {
+    throw new Error('Script Google Sheets sans mode administrateur (à redéployer en "Nouvelle version")');
+  }
+
+  const res = await fetch(settings.webAppUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'admin', code: codeAdmin, demande })
+  });
+  const data = res.ok ? await res.json().catch(() => null) : null;
+  if (!data) throw new Error(`Réponse illisible du script (${res.status})`);
+  // Code changé dans le tableau depuis l'activation : le mode se désactive sur ce poste plutôt
+  // que de réessayer à chaque synchro et d'épuiser les essais autorisés.
+  if (data.refuse && code === undefined) await chrome.storage.local.remove(['adminCode']);
+  if (!data.ok) throw new Error(data.error || 'Demande refusée');
+  return data;
+}
+
 // ---------- Messages des pages de l'extension et du script de contenu ----------
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -404,6 +446,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       sendResponse(reponse);
     })();
+    return true;
+  }
+  // Pages de l'extension seulement (Paramètres) : le script de contenu tourne sur toute page web
+  // et n'a pas à déclencher de demande portant le code administrateur.
+  if (msg.type === 'ADMIN') {
+    if (sender.id !== chrome.runtime.id || !sender.url || !sender.url.startsWith(chrome.runtime.getURL(''))) {
+      sendResponse({ ok: false, error: 'Origine refusée' });
+      return false;
+    }
+    demandeAdmin(msg.demande, msg.code !== undefined ? { code: msg.code } : {})
+      .then(data => sendResponse(data))
+      .catch(e => sendResponse({ ok: false, error: e.message }));
     return true;
   }
   if (msg.type === 'STAT') {

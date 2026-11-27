@@ -6,6 +6,8 @@
 //                                   l'onglet "Local_Snippets_Backup" (jamais dans "Snippets")
 //   POST {action:"stats", ...}   -> statistiques d'utilisation anonymes, dans l'onglet
 //                                   "Statistiques" (une ligne par utilisateur et par jour)
+//   POST {action:"admin", ...}   -> mode administrateur de l'extension : lecture seule, sur
+//                                   présentation du code administrateur (voir plus bas)
 //
 // Et, dans le tableau lui-même, un menu « Clausier » pour le garant du Clausier Commun :
 //   Préparer la revue        -> onglet "Revue" : nouveaux déclencheurs et variantes de snippets
@@ -145,7 +147,9 @@ function json_(obj) {
 // avec le même repli : un script resté en version 4 ne reçoit rien.
 // Version 6 : plus de POST {action:"append"} ni de ?probe=append (voir doPost). L'extension ne
 // s'en servait plus depuis la v2.18.0.
-const API_VERSION = 6;
+// Version 7 : POST {action:"admin"} pour le mode administrateur, sondé par ?probe=admin. Lecture
+// seule ; un script resté en version 6 répond « Action inconnue » et le mode reste inactif.
+const API_VERSION = 7;
 
 function doGet(e) {
   if (e && e.parameter && e.parameter.probe === 'backup') {
@@ -153,6 +157,9 @@ function doGet(e) {
   }
   if (e && e.parameter && e.parameter.probe === 'stats') {
     return json_({ ok: true, api: 'stats', version: API_VERSION });
+  }
+  if (e && e.parameter && e.parameter.probe === 'admin') {
+    return json_({ ok: true, api: 'admin', version: API_VERSION });
   }
 
   const sheet = getSheet_();
@@ -169,12 +176,13 @@ function doGet(e) {
 
 // Les seules écritures ouvertes au public, toutes deux confinées à leur onglet. Aucune action
 // n'écrit dans "Snippets" (voir l'en-tête) : une version ancienne de ce script vidait même tout le
-// tableau sur n'importe quel POST.
+// tableau sur n'importe quel POST. "admin" n'écrit dans aucun onglet.
 function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
     if (body.action === 'backup') return json_(sauvegarderClausier_(body));
     if (body.action === 'stats') return json_(enregistrerStatistiques_(body));
+    if (body.action === 'admin') return json_(administrer_(body));
     return json_({ ok: false, error: 'Action inconnue : ' + body.action });
   } catch (err) {
     return json_({ ok: false, error: String(err) });
@@ -274,6 +282,8 @@ function onOpen() {
     .addSeparator()
     .addItem('Synthèse hebdomadaire des statistiques', 'syntheseHebdomadaire')
     .addItem('Synthèse mensuelle des statistiques', 'syntheseMensuelle')
+    .addSeparator()
+    .addItem('Définir le code administrateur', 'definirCodeAdministrateur')
     .addToUi();
 }
 
@@ -713,7 +723,9 @@ const STATS_LIBELLES = {
   clausier_export: 'Exports du Clausier Personnel',
   popup: 'Ouvertures du popup',
   parametres: 'Ouvertures des Paramètres',
-  tutoriel: 'Ouvertures du tutoriel'
+  tutoriel: 'Ouvertures du tutoriel',
+  admin_activation: 'Mode administrateur activé',
+  admin_desactivation: 'Mode administrateur désactivé'
 };
 
 function getStatsSheet_() {
@@ -903,4 +915,80 @@ function syntheseStatistiques_(periode) {
   ui.alert('Synthèse prête',
     `${lignes.length} ${hebdo ? 'semaine(s)' : 'mois'}, du plus récent au plus ancien. Les données détaillées restent dans ` +
     `l'onglet masqué « ${STATS_SHEET_NAME} », conservées ${STATS_CONSERVATION_MOIS} mois.`, ui.ButtonSet.OK);
+}
+
+
+// ============================================================================
+// MODE ADMINISTRATEUR DE L'EXTENSION (#119)
+// ============================================================================
+//
+// Le code source de l'extension est public (GitHub, paquet du Store) : un mot de passe écrit
+// dedans se lirait en deux minutes. Le code administrateur vit donc ici seul, dans les propriétés
+// du script, et seulement sous forme d'empreinte SHA-256 salée : ni l'éditeur ni une copie du
+// projet ne le montrent en clair. L'extension le présente à chaque demande (POST, jamais dans
+// l'adresse, qui finit dans les journaux), et le script ne répond qu'à ce code.
+//
+// Tout le monde peut appeler ce script : les essais ratés sont donc limités (ADMIN_ESSAIS_MAX par
+// quart d'heure, tous appelants confondus). Au-delà, le mode administrateur est suspendu pour
+// tous pendant ce quart d'heure, y compris le garant : c'est le prix de l'absence de comptes.
+//
+// Le mode administrateur ne fait que LIRE. Il n'ouvre aucune écriture vers "Snippets" (voir
+// l'en-tête) : un code qui fuit ne permet d'injecter aucun snippet chez les utilisateurs.
+
+const ADMIN_PROPRIETE_EMPREINTE = 'adminEmpreinte';
+const ADMIN_PROPRIETE_SEL = 'adminSel';
+const ADMIN_CODE_LONGUEUR_MIN = 12;
+const ADMIN_ESSAIS_MAX = 10;
+const ADMIN_ESSAIS_DUREE_S = 15 * 60;
+
+function empreinteCode_(sel, code) {
+  const octets = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, sel + '\u0000' + code,
+    Utilities.Charset.UTF_8);
+  return octets.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
+}
+
+// Menu « Clausier > Définir le code administrateur ». Remplacer le code désactive le mode
+// administrateur sur chaque poste où l'ancien était saisi.
+function definirCodeAdministrateur() {
+  const ui = SpreadsheetApp.getUi();
+  const reponse = ui.prompt('Code administrateur',
+    `Code à saisir dans l'extension (Paramètres avancés > Mode administrateur), ${ADMIN_CODE_LONGUEUR_MIN} caractères ` +
+    'au moins. Il n\'est pas affiché ensuite : notez-le. Un nouveau code remplace l\'ancien sur tous les postes.',
+    ui.ButtonSet.OK_CANCEL);
+  if (reponse.getSelectedButton() !== ui.Button.OK) return;
+  const code = reponse.getResponseText().trim();
+  if (code.length < ADMIN_CODE_LONGUEUR_MIN) {
+    ui.alert('Code trop court', `Le code doit faire ${ADMIN_CODE_LONGUEUR_MIN} caractères au moins. Rien n'a changé.`, ui.ButtonSet.OK);
+    return;
+  }
+  const sel = Utilities.getUuid();
+  PropertiesService.getScriptProperties().setProperties({
+    [ADMIN_PROPRIETE_SEL]: sel,
+    [ADMIN_PROPRIETE_EMPREINTE]: empreinteCode_(sel, code)
+  });
+  ui.alert('Code enregistré', 'Le mode administrateur s\'active dans l\'extension avec ce code, une fois le script ' +
+    'redéployé en « Nouvelle version » (API 7 ou plus).', ui.ButtonSet.OK);
+}
+
+function codeAdminValide_(code) {
+  const props = PropertiesService.getScriptProperties();
+  const sel = props.getProperty(ADMIN_PROPRIETE_SEL);
+  const attendue = props.getProperty(ADMIN_PROPRIETE_EMPREINTE);
+  if (!sel || !attendue) return { ok: false, error: 'Aucun code administrateur défini dans le tableau (menu Clausier)' };
+
+  const cache = CacheService.getScriptCache();
+  const essais = Number(cache.get('adminEssais')) || 0;
+  if (essais >= ADMIN_ESSAIS_MAX) return { ok: false, error: 'Trop d\'essais : réessayez dans un quart d\'heure' };
+  if (typeof code === 'string' && code && empreinteCode_(sel, code) === attendue) return { ok: true };
+  cache.put('adminEssais', String(essais + 1), ADMIN_ESSAIS_DUREE_S);
+  return { ok: false, error: 'Code administrateur refusé' };
+}
+
+// Une demande par fonction du mode administrateur. "verifier" sert à l'activation dans les
+// Paramètres ; les suivantes arrivent avec leurs fonctions (#119).
+function administrer_(body) {
+  const acces = codeAdminValide_(body.code);
+  if (!acces.ok) return { ...acces, api: 'admin', refuse: true };
+  if (body.demande === 'verifier') return { ok: true, api: 'admin', version: API_VERSION };
+  return { ok: false, api: 'admin', error: 'Demande inconnue : ' + body.demande };
 }
