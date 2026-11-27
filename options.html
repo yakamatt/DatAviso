@@ -163,6 +163,20 @@
           </div>
         </div>
 
+        <div class="advanced-block" id="admin-block">
+          <h3>Mode administrateur</h3>
+          <p class="hint">Réservé au garant du Clausier Commun. Le code se définit dans le tableau Google Sheets (menu Clausier &gt; Définir le code administrateur) et n'est vérifié que par lui : il n'est retenu que sur ce poste.</p>
+          <div id="admin-inactif" class="row-between">
+            <input type="password" id="admin-code" placeholder="Code administrateur" autocomplete="off" />
+            <button type="button" class="secondary" id="admin-activer">Activer</button>
+          </div>
+          <div id="admin-actif" class="row-between" hidden>
+            <span>✅ Mode administrateur actif sur ce poste</span>
+            <button type="button" class="secondary" id="admin-desactiver">Désactiver</button>
+          </div>
+          <p class="hint" id="admin-status"></p>
+        </div>
+
         <div class="advanced-block">
           <h3>Liens vers l'affaire</h3>
           <p class="hint">Sur Aviso, de petites icônes ouvrent l'affaire à partir de son numéro : sur la liste Plans Affaires, à côté de la loupe de chaque ligne, et dans la barre bleue d'une affaire ouverte, à gauche de « BTS ». Décochez celles dont vous ne vous servez pas.</p>

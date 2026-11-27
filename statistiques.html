@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DatAviso — Statistiques</title>
+<link rel="stylesheet" href="statistiques.css" />
+</head>
+<body>
+  <main class="page">
+    <header class="entete">
+      <h1><img src="icons/icon32.png" alt="" /> Statistiques d'utilisation</h1>
+      <div class="filtres" role="group" aria-label="Période">
+        <button type="button" data-periode="7">7 jours</button>
+        <button type="button" data-periode="30" class="actif">30 jours</button>
+        <button type="button" data-periode="90">90 jours</button>
+        <button type="button" data-periode="365">12 mois</button>
+        <button type="button" id="actualiser" class="secondaire" title="Relire le tableau">⟳</button>
+      </div>
+    </header>
+    <p class="hint" id="statut">⏳ Lecture du tableau…</p>
+
+    <section class="tuiles" id="tuiles"></section>
+
+    <section class="carte">
+      <h2 id="titre-usage">Utilisations</h2>
+      <p class="hint">Total des fonctions comptées (expansions, icônes, liens, réglages…), tous utilisateurs confondus.</p>
+      <div class="graphe" id="graphe-usage"></div>
+    </section>
+
+    <div class="deux-colonnes">
+      <section class="carte">
+        <h2>Utilisateurs actifs par semaine</h2>
+        <p class="hint">Postes ayant utilisé au moins une fonction dans la semaine.</p>
+        <div class="graphe" id="graphe-actifs"></div>
+      </section>
+      <section class="carte">
+        <h2>Nouvelles installations par semaine</h2>
+        <p class="hint">Premier envoi de statistiques d'un poste.</p>
+        <div class="graphe" id="graphe-nouveaux"></div>
+      </section>
+    </div>
+
+    <div class="deux-colonnes">
+      <section class="carte">
+        <h2>Fonctions principales</h2>
+        <p class="hint">Sur la période choisie.</p>
+        <div class="graphe" id="graphe-fonctions"></div>
+      </section>
+      <section class="carte">
+        <h2>Versions en service</h2>
+        <p class="hint">Dernière version vue de chaque poste, sur toute la durée conservée.</p>
+        <div class="graphe" id="graphe-versions"></div>
+      </section>
+    </div>
+
+    <section class="carte">
+      <h2>Détail par fonction</h2>
+      <table class="detail">
+        <thead><tr><th>Fonction</th><th class="nombre">Utilisations</th></tr></thead>
+        <tbody id="detail"></tbody>
+      </table>
+    </section>
+
+    <p class="hint pied">Compteurs anonymes : ni texte, ni adresse de page, ni donnée d'Aviso (voir la politique de confidentialité). Les installations dont les statistiques sont désactivées n'apparaissent pas.</p>
+  </main>
+  <div class="infobulle" id="infobulle" hidden></div>
+  <script src="statistiques.js"></script>
+</body>
+</html>

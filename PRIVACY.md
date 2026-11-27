@@ -1,6 +1,6 @@
 # Politique de confidentialité — DatAviso
 
-*Dernière mise à jour : 7 novembre 2026 (version 2.23.0)*
+*Dernière mise à jour : 27 novembre 2026 (version 2.35.0)*
 
 DatAviso est une extension Chrome gratuite qui remplace un raccourci court (un « déclencheur », par exemple `/GN4`) par un texte complet, dans les champs de texte du navigateur, et ajoute des raccourcis à l'application Aviso. Cette page explique quelles données l'extension utilise, où elles vont, et comment garder la main dessus.
 
@@ -8,6 +8,7 @@ DatAviso est une extension Chrome gratuite qui remplace un raccourci court (un �
 
 - **Ce que vous tapez dans les pages web.** L'extension lit le texte saisi dans un champ uniquement pour repérer un déclencheur et le remplacer par son texte. Ce texte n'est **jamais envoyé** nulle part, ni enregistré.
 - **Le Clausier Personnel** (vos propres snippets), les **données DatAviso AI** que vous importez et vos **réglages** sont enregistrés dans le stockage de Chrome (`chrome.storage`), sur votre ordinateur. Les réglages peuvent être synchronisés par Chrome entre vos appareils si vous avez activé la synchronisation de votre compte Chrome.
+- **Les champs retenus du mode administrateur** (adresse de la page, sans paramètres, et emplacement du champ où le garant a créé un snippet au clic droit) restent dans le stockage local de Chrome, pour y reproposer le snippet. Ils ne sont jamais envoyés.
 - **Les liens d'affaire** (SGO, SharePoint, Explorateur Windows) sont de simples liens construits à partir du numéro d'affaire affiché dans Aviso. L'extension n'envoie rien elle-même : c'est votre clic qui ouvre la page ou l'application visée.
 
 ## Ce qui est échangé avec Google Sheets
@@ -21,6 +22,10 @@ Depuis la version 2.21.0, l'extension envoie au Google Sheets du Clausier Commun
 ### Statistiques d'utilisation anonymes
 
 Depuis la version 2.22.0, l'extension compte combien de fois chacune de ses fonctions a servi (une expansion au clavier, un clic sur une icône d'Aviso ou un lien d'affaire, un import, l'ouverture du popup…) et envoie ces totaux, par jour, au même Google Sheets, avec la version installée, le nombre de snippets personnels et le nombre d'articles DatAviso AI importés. Ils sont rattachés au même identifiant aléatoire que la sauvegarde, sans nom, ni adresse e-mail, ni information sur le compte. Ils ne contiennent jamais le texte tapé ou inséré, les pages visitées, les déclencheurs ni les données d'Aviso. Ils servent uniquement à mesurer l'adoption de l'extension et à savoir quelles fonctions servent ; ils sont conservés 24 mois, puis supprimés. L'utilisateur peut les désactiver dans Paramètres avancés > Statistiques d'utilisation anonymes ; les compteurs pas encore envoyés sont alors effacés.
+
+### Mode administrateur
+
+Réservé au garant du Clausier Commun et activé par un code qu'il définit dans le tableau. Il affiche des totaux tirés des statistiques ci-dessus (jamais la ligne d'un utilisateur) et permet au garant de proposer ses propres snippets à la revue du Clausier Commun. Le code est retenu dans le navigateur du garant et envoyé au seul script du tableau, à chaque demande. Hors de ce mode, l'extension n'envoie rien de plus.
 
 ## Ce que l'extension ne fait pas
 
@@ -37,6 +42,7 @@ Depuis la version 2.22.0, l'extension compte combien de fois chacune de ses fonc
 | `storage`, `unlimitedStorage` | Enregistrer les snippets, les données DatAviso AI et les réglages dans le navigateur |
 | `alarms` | Actualiser le Clausier Commun et envoyer la sauvegarde et les statistiques anonymes à intervalle régulier |
 | `script.google.com`, `script.googleusercontent.com` | Lire le Clausier Commun et y envoyer la sauvegarde et les statistiques anonymes |
+| `contextMenus` | En mode administrateur seulement (réservé au garant du Clausier Commun, activé par un code) : créer un snippet ou le proposer au Clausier Commun depuis le clic droit. Aucune entrée n'est ajoutée au clic droit sans ce mode |
 
 ## Vos choix
 

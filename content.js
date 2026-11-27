@@ -79,6 +79,9 @@ function loadSnippets() {
     IMPORTED_ARTICLES = res.importedArticles || [];
     rebuildActiveSnippets();
     if (isAvisoSite()) scheduleAvisoScan();
+    // Les icônes des champs retenus n'affichent que des snippets personnels existants : le premier
+    // scan a pu passer avant cette lecture.
+    scheduleScanChamps();
   });
 }
 // Applique les réglages ; renvoie les classes des éléments Aviso dont le réglage a changé, pour
@@ -1749,3 +1752,462 @@ if (isAvisoSite()) {
   window.addEventListener('resize', scheduleAvisoScan);
   scheduleAvisoScan();
 }
+
+// ---------- Mode administrateur : clic droit sur un champ de saisie (#119) ----------
+// Le menu contextuel n'existe qu'en mode administrateur (background.js, majMenusAdmin). Sur
+// n'importe quel site, il ouvre une fenêtre de création : snippet du Clausier Personnel, ou
+// proposition au Clausier Commun. Une proposition ne va jamais directement dans le Clausier
+// Commun : elle arrive dans la revue du tableau, marquée « proposé par le garant », et n'est
+// appliquée que par « Appliquer les décisions » (invariant 1).
+//
+// Contenu proposé : le texte sélectionné, sinon ce que contient le champ cliqué. Rien n'est
+// écrit dans le champ : la fenêtre ne fait que lire la page.
+
+let champClicDroit = null;
+document.addEventListener('contextmenu', (e) => {
+  const cible = e.target instanceof Element ? e.target : null;
+  champClicDroit = cible && cible.closest('textarea, input, [contenteditable]:not([contenteditable="false"])');
+}, true);
+
+function texteDuChamp(champ) {
+  if (!champ) return '';
+  if (champ.matches('textarea, input')) return champ.value || '';
+  return champ.innerText || '';
+}
+
+function ouvrirCreationClicDroit(mode, selection, jeton, triggerInitial = '') {
+  if (document.getElementById(AVISO_EDITOR_ID)) return;
+  const commun = mode === 'commun';
+  const contenuInitial = (selection || '').trim() ? selection : texteDuChamp(champClicDroit);
+
+  const host = document.createElement('div');
+  host.id = AVISO_EDITOR_ID;
+  const root = host.attachShadow({ mode: 'open' });
+  root.innerHTML = `<style>${AVISO_EDITOR_CSS}
+    .fenetre.commun { border-top-color: #2d51b2; }
+    .commun .enregistrer { background: #2d51b2; color: #ffffff; }
+    .commun .enregistrer:hover { background: #1f3d8f; }
+    label { font-size: 12.5px; font-weight: 600; }
+    input[type="text"] { width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #c3cdea;
+      border-radius: 8px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13.5px; }
+    .case { display: flex; align-items: center; gap: 6px; font-weight: 400; }
+    .case[hidden] { display: none; }
+    </style>
+    <div class="fond">
+      <div class="fenetre${commun ? ' commun' : ''}" role="dialog" aria-modal="true" aria-labelledby="titre">
+        <h2 id="titre">${commun ? 'Proposer au Clausier Commun' : 'Créer un snippet personnel'}</h2>
+        <p class="aide">${commun
+          ? 'La proposition arrive dans la revue du tableau, en tête et marquée « proposé par le garant ». Elle n\'entre dans le Clausier Commun qu\'avec « Appliquer les décisions ».'
+          : 'Clausier Personnel : ce snippet est enregistré dans ce navigateur uniquement, et se déclenche au clavier sur toute page.'}
+          Ctrl+Entrée pour enregistrer, Échap pour annuler.</p>
+        <label for="declencheur">Déclencheur</label>
+        <input type="text" id="declencheur" placeholder="/exemple" spellcheck="false" autocomplete="off" />
+        <label for="contenu">Texte</label>
+        <textarea id="contenu" spellcheck="true"></textarea>
+        <label class="case" ${commun ? '' : 'hidden'}><input type="checkbox" id="aussi-perso" checked /> L'ajouter aussi à mon Clausier Personnel, pour m'en servir dès maintenant</label>
+        <p class="erreur" hidden></p>
+        <div class="actions">
+          <span class="espace"></span>
+          <button type="button" class="annuler">Annuler</button>
+          <button type="button" class="enregistrer">${commun ? 'Proposer' : 'Enregistrer'}</button>
+        </div>
+      </div>
+    </div>`;
+
+  const champTrigger = root.getElementById('declencheur');
+  const textarea = root.getElementById('contenu');
+  const aussiPerso = root.getElementById('aussi-perso');
+  const erreurEl = root.querySelector('.erreur');
+  const btnEnregistrer = root.querySelector('.enregistrer');
+  textarea.value = contenuInitial || '';
+  champTrigger.value = triggerInitial;
+
+  ['keydown', 'keyup', 'keypress', 'input', 'click', 'mousedown', 'mouseup'].forEach(type => {
+    host.addEventListener(type, (e) => e.stopPropagation());
+  });
+
+  const fermer = () => host.remove();
+  const afficherErreur = (message) => { erreurEl.textContent = message; erreurEl.hidden = false; };
+  const annuler = () => {
+    if ((textarea.value !== (contenuInitial || '') || champTrigger.value.trim() !== triggerInitial) &&
+        !confirm('Abandonner ce snippet ?')) return;
+    fermer();
+  };
+
+  const enregistrer = async () => {
+    const trigger = champTrigger.value.trim();
+    const contenu = textarea.value;
+    if (!trigger) { afficherErreur('Saisissez un déclencheur, par exemple /gn4.'); champTrigger.focus(); return; }
+    if (/\s/.test(trigger)) { afficherErreur('Le déclencheur ne doit pas contenir d\'espace.'); champTrigger.focus(); return; }
+    if (!contenu.trim()) { afficherErreur('Le texte est vide.'); textarea.focus(); return; }
+    btnEnregistrer.disabled = true;
+    try {
+      if (!commun || aussiPerso.checked) {
+        // Un snippet personnel existant n'est jamais remplacé sans accord.
+        const existant = LOCAL_SNIPPETS.find(s => s.trigger === trigger);
+        if (existant && existant.content !== contenu &&
+            !confirm(`Le snippet "${trigger}" existe déjà dans votre Clausier Personnel. Le remplacer ?`)) {
+          btnEnregistrer.disabled = false;
+          return;
+        }
+      }
+      if (commun) {
+        const rep = await new Promise((resolve) => {
+          chrome.runtime.sendMessage({ type: 'ADMIN', demande: 'proposer', jeton, trigger, content: contenu },
+            (r) => resolve(chrome.runtime.lastError ? { ok: false, error: chrome.runtime.lastError.message } : r));
+        });
+        if (!rep || !rep.ok) throw new Error((rep && rep.error) || 'pas de réponse');
+      }
+      if (!commun || aussiPerso.checked) await enregistrerSnippetLocal(trigger, contenu);
+      // Le champ cliqué est retenu : à chaque retour sur cette page, il portera les icônes du
+      // déclencheur (voir « Champs retenus » plus bas), le « + » tant qu'il n'y a pas de snippet
+      // personnel, et l'icône bleue dès que la proposition est adoptée dans le Clausier Commun.
+      if (champClicDroit) await retenirChamp(champClicDroit, trigger).catch(() => {});
+      fermer();
+    } catch (err) {
+      btnEnregistrer.disabled = false;
+      afficherErreur(/context invalidated/i.test(err && err.message)
+        ? "L'extension a été mise à jour : rechargez la page, puis recommencez."
+        : `${commun ? 'Proposition' : 'Enregistrement'} impossible : ${err && err.message}`);
+    }
+  };
+
+  btnEnregistrer.addEventListener('click', enregistrer);
+  root.querySelector('.annuler').addEventListener('click', annuler);
+  root.querySelector('.fenetre').addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); annuler(); }
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); enregistrer(); }
+  });
+
+  document.body.appendChild(host);
+  if (triggerInitial) textarea.focus();
+  else champTrigger.focus();
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!msg || msg.type !== 'DATAVISO_CLIC_DROIT' || sender.id !== chrome.runtime.id) return;
+  ouvrirCreationClicDroit(msg.mode, msg.selection, msg.jeton);
+  sendResponse({ ok: true });
+});
+
+
+// ---------- Mode administrateur : champs retenus (#119) ----------
+// Un champ où le garant a créé un snippet au clic droit est retenu (storage.local, clé
+// champsRetenus : page, sélecteur du champ, déclencheurs). À chaque retour sur la page, une
+// petite rangée flotte au coin haut droit du champ, avec les icônes d'Aviso pour chaque
+// déclencheur : « + » gris ou jaune (Clausier Personnel), puis bleue (Clausier Commun). Un clic
+// AJOUTE le snippet à la fin du champ, sans rien remplacer (même règle que dans Aviso). Le ✕,
+// au survol, oublie le champ. Rien ne s'affiche hors du mode administrateur.
+//
+// La rangée vit dans un Shadow DOM posé sur <body>, en position absolue, et non dans la page à
+// côté du champ : insérée dans la mise en page d'un site inconnu, elle la décalerait ou serait
+// rognée par un conteneur. Elle suit le champ (défilement, redimensionnement, contrôle régulier)
+// et disparaît quand il n'est plus visible.
+
+const CHAMPS_RETENUS_MAX = 200;
+const CHAMP_HOTE_ATTR = 'data-dataviso-champ-retenu';
+let CHAMPS_RETENUS = [];
+let MODE_ADMIN = false;
+const hotesChamps = new Map(); // champ -> { hote, triggers }
+
+function cleDePage() {
+  return location.origin + location.pathname;
+}
+
+function echapperCss(v) {
+  return window.CSS && CSS.escape ? CSS.escape(v) : String(v).replace(/["\\]/g, '\\$&');
+}
+
+// Sélecteur stable du champ : son id, sinon son name, sinon un chemin de :nth-of-type depuis le
+// plus proche ancêtre à id (ou <body>). Retenu seulement s'il désigne ce champ et lui seul.
+function selecteurDuChamp(champ) {
+  const unique = (sel) => {
+    try { const r = document.querySelectorAll(sel); return r.length === 1 && r[0] === champ; } catch { return false; }
+  };
+  if (champ.id && unique('#' + echapperCss(champ.id))) return '#' + echapperCss(champ.id);
+  const nom = champ.getAttribute('name');
+  const tag = champ.tagName.toLowerCase();
+  if (nom && unique(`${tag}[name="${echapperCss(nom)}"]`)) return `${tag}[name="${echapperCss(nom)}"]`;
+  const etapes = [];
+  let el = champ;
+  while (el && el !== document.body && el.nodeType === 1) {
+    if (el !== champ && el.id) { etapes.unshift('#' + echapperCss(el.id)); break; }
+    const t = el.tagName.toLowerCase();
+    const freres = el.parentElement ? [...el.parentElement.children].filter(x => x.tagName === el.tagName) : [];
+    etapes.unshift(freres.length > 1 ? `${t}:nth-of-type(${freres.indexOf(el) + 1})` : t);
+    el = el.parentElement;
+  }
+  if (!etapes[0] || !etapes[0].startsWith('#')) etapes.unshift('body');
+  const sel = etapes.join(' > ');
+  return unique(sel) ? sel : null;
+}
+
+async function retenirChamp(champ, trigger) {
+  // Une cellule « Dispositions réalisées » d'Aviso a déjà ses icônes.
+  if (isAvisoSite() && champ.matches('textarea.verification')) return;
+  const selecteur = selecteurDuChamp(champ);
+  if (!selecteur) return;
+  const page = cleDePage();
+  const { champsRetenus } = await chrome.storage.local.get(['champsRetenus']);
+  const liste = (champsRetenus || []).slice();
+  let entree = liste.find(c => c.page === page && c.selecteur === selecteur);
+  if (!entree) {
+    entree = { page, selecteur, triggers: [] };
+    liste.push(entree);
+  }
+  if (!entree.triggers.includes(trigger)) entree.triggers.push(trigger);
+  entree.vu = new Date().toISOString();
+  // Les plus anciens partent d'abord : la liste ne grossit pas sans fin.
+  liste.sort((x, y) => String(y.vu).localeCompare(String(x.vu)));
+  await chrome.storage.local.set({ champsRetenus: liste.slice(0, CHAMPS_RETENUS_MAX) });
+}
+
+async function oublierChamp(selecteur) {
+  const page = cleDePage();
+  const { champsRetenus } = await chrome.storage.local.get(['champsRetenus']);
+  await chrome.storage.local.set({
+    champsRetenus: (champsRetenus || []).filter(c => !(c.page === page && c.selecteur === selecteur))
+  });
+}
+
+// Ajoute le texte à la fin du champ, séparé de l'existant par un saut de ligne (une espace dans
+// un <input>), puis signale la saisie comme une frappe pour que le site l'enregistre.
+function ajouterAuChamp(champ, texte) {
+  if (champ.matches('textarea, input')) {
+    const avant = champ.value || '';
+    const sep = !avant ? '' : champ.tagName === 'INPUT' ? (/\s$/.test(avant) ? '' : ' ') : (avant.endsWith('\n') ? '' : '\n');
+    const ajout = champ.tagName === 'INPUT' ? texte.replace(/\s*\n\s*/g, ' ') : texte;
+    setNativeValue(champ, avant + sep + ajout);
+    champ.dispatchEvent(new Event('input', { bubbles: true }));
+    champ.dispatchEvent(new Event('change', { bubbles: true }));
+    champ.focus();
+    const fin = champ.value.length;
+    try { champ.setSelectionRange(fin, fin); } catch { /* type sans sélection */ }
+  } else {
+    champ.focus();
+    const sel = window.getSelection();
+    const plage = document.createRange();
+    plage.selectNodeContents(champ);
+    plage.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(plage);
+    const avant = champ.innerText || '';
+    const texteFinal = (avant.trim() && !avant.endsWith('\n') ? '\n' : '') + texte;
+    // insertText garde l'historique d'annulation et prévient les éditeurs riches ; repli DOM sinon.
+    if (!document.execCommand('insertText', false, texteFinal)) {
+      champ.appendChild(document.createTextNode(texteFinal));
+      champ.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+}
+
+// Mêmes icônes que dans Aviso (icons/add16.svg, icons/local16.svg, et le logo bleu de
+// icons/icon16.png redessiné en SVG), écrites ici plutôt que chargées : un fichier de l'extension
+// ne s'affiche sur un site que s'il est déclaré « web accessible » pour ce site, et l'ouvrir à
+// tous les sites laisserait n'importe quelle page détecter l'extension. Tout changement d'une
+// icône se reporte ici.
+const ICONE_CHAMP_PLUS = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">' +
+  '<circle cx="8" cy="8" r="7" fill="#ffffff" stroke="#5b6a8f" stroke-width="1.5"/>' +
+  '<path d="M8 4.75v6.5M4.75 8h6.5" stroke="#5b6a8f" stroke-width="1.5" stroke-linecap="round"/></svg>';
+const iconeChampLogo = (fond, trait) => '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">' +
+  `<rect x="0.5" y="0.5" width="15" height="15" rx="2.5" fill="${fond}"/>` +
+  `<path d="M4.5 5v6M1.75 8h5.5" stroke="${trait}" stroke-width="1.6" stroke-linecap="round"/>` +
+  `<path d="M9.25 8h4.5M11.75 5.75 13.9 8l-2.15 2.25" fill="none" stroke="${trait}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const ICONE_CHAMP_PERSO = iconeChampLogo('#f2b705', '#3d2e00');
+const ICONE_CHAMP_COMMUN = iconeChampLogo('#2d51b2', '#ffffff');
+
+const CHAMP_CSS = `
+  :host { all: initial; }
+  .rangee { position: absolute; display: flex; gap: 4px; align-items: center; z-index: 2147483646;
+    padding: 2px 3px; background: rgba(255, 255, 255, 0.92); border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); }
+  .groupe { display: flex; gap: 3px; }
+  .groupe + .groupe { padding-left: 4px; border-left: 1px solid #dde3f3; }
+  button { all: unset; cursor: pointer; display: inline-flex; }
+  button svg { display: block; }
+  .oublier { color: #5b6a8f; font: 600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    line-height: 16px; padding: 0 2px; display: none; }
+  .rangee:hover .oublier { display: inline-flex; }
+  .oublier:hover { color: #b3261e; }
+`;
+
+// Rapprochement des déclencheurs commun et personnel : comme cleDeclencheur_ dans Code.gs, sans
+// tenir compte de la casse, des espaces ni du préfixe (« /gn4 » = « GN4 »).
+function cleTrigger(t) {
+  return String(t || '').replace(/^[\/;:!]+/, '').replace(/\s+/g, '').toUpperCase();
+}
+
+function construireRangee(champ, entree) {
+  // Pour chaque déclencheur, comme dans Aviso : le « + » gris OU l'icône jaune (jamais les deux),
+  // puis l'icône bleue s'il existe un snippet commun de même déclencheur.
+  const groupes = entree.triggers.map(trigger => ({
+    trigger,
+    perso: LOCAL_SNIPPETS.find(x => x.trigger === trigger),
+    commun: SNIPPETS.find(x => cleTrigger(x.trigger) === cleTrigger(trigger))
+  }));
+  const signature = groupes.map(g => `${g.trigger}:${g.perso ? 1 : 0}${g.commun ? 1 : 0}`).join('|');
+  const existant = hotesChamps.get(champ);
+  if (existant && existant.signature === signature) return;
+  if (existant) existant.hote.remove();
+  hotesChamps.delete(champ);
+  if (!groupes.length) return;
+
+  const hote = document.createElement('div');
+  hote.setAttribute(CHAMP_HOTE_ATTR, '');
+  const root = hote.attachShadow({ mode: 'open' });
+  root.innerHTML = `<style>${CHAMP_CSS}</style><div class="rangee"></div>`;
+  const rangee = root.querySelector('.rangee');
+
+  const bouton = (svg, titre, action) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.innerHTML = svg;
+    b.addEventListener('mouseenter', () => { b.title = titre(); });
+    b.addEventListener('mousedown', (e) => e.preventDefault()); // garde le focus du champ
+    b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); action(); });
+    return b;
+  };
+  // Le snippet est relu au clic (et l'infobulle au survol) : il a pu changer depuis la pose.
+  const inserer = (trouver, cle) => () => {
+    const snippet = trouver();
+    if (!snippet) return;
+    ajouterAuChamp(champ, resolveContent(snippet.content));
+    compterUsage(cle);
+  };
+  const apercu = (libelle, trouver, trigger) => () => {
+    const snippet = trouver();
+    return snippet ? `${libelle} "${trigger}" :\n${tronquerPourInfobulle(resolveContent(snippet.content))}` : '';
+  };
+
+  groupes.forEach(g => {
+    const groupe = document.createElement('span');
+    groupe.className = 'groupe';
+    const trouverPerso = () => LOCAL_SNIPPETS.find(x => x.trigger === g.trigger);
+    const trouverCommun = () => SNIPPETS.find(x => cleTrigger(x.trigger) === cleTrigger(g.trigger));
+    if (g.perso) {
+      groupe.appendChild(bouton(ICONE_CHAMP_PERSO,
+        apercu('Ajouter le contenu du snippet du Clausier Personnel', trouverPerso, g.trigger),
+        inserer(trouverPerso, 'admin_champ_perso')));
+    } else {
+      groupe.appendChild(bouton(ICONE_CHAMP_PLUS,
+        () => `Créer le snippet "${g.trigger}" dans le Clausier Personnel, à partir du texte de ce champ`,
+        () => {
+          champClicDroit = champ;
+          ouvrirCreationClicDroit('perso', '', null, g.trigger);
+          compterUsage('admin_champ_plus');
+        }));
+    }
+    if (g.commun) {
+      groupe.appendChild(bouton(ICONE_CHAMP_COMMUN,
+        apercu('Ajouter le contenu du snippet du Clausier Commun', trouverCommun, g.trigger),
+        inserer(trouverCommun, 'admin_champ_commun')));
+    }
+    rangee.appendChild(groupe);
+  });
+
+  const oublier = document.createElement('button');
+  oublier.type = 'button';
+  oublier.className = 'oublier';
+  oublier.textContent = '✕';
+  oublier.title = 'Ne plus proposer de snippet sur ce champ (les snippets restent dans les clausiers)';
+  oublier.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    oublierChamp(entree.selecteur).catch(() => {});
+    compterUsage('admin_champ_oubli');
+  });
+  rangee.appendChild(oublier);
+  ['keydown', 'keyup', 'keypress', 'input', 'click', 'mousedown', 'mouseup'].forEach(type => {
+    hote.addEventListener(type, (e) => e.stopPropagation());
+  });
+  document.body.appendChild(hote);
+  hotesChamps.set(champ, { hote, rangee, signature });
+  placerRangee(champ);
+}
+
+function placerRangee(champ) {
+  const h = hotesChamps.get(champ);
+  if (!h) return;
+  const r = champ.getBoundingClientRect();
+  const visible = champ.isConnected && r.width > 0 && r.height > 0 && getComputedStyle(champ).visibility !== 'hidden';
+  h.rangee.style.display = visible ? 'flex' : 'none';
+  if (!visible) return;
+  const largeur = h.rangee.offsetWidth;
+  // Au-dessus du coin haut droit du champ, sans sortir de la fenêtre.
+  const x = Math.max(window.scrollX + 2, window.scrollX + r.right - largeur);
+  const y = Math.max(window.scrollY + 2, window.scrollY + r.top - 20);
+  h.rangee.style.left = `${x}px`;
+  h.rangee.style.top = `${y}px`;
+}
+
+function placerRangees() {
+  hotesChamps.forEach((h, champ) => {
+    if (!champ.isConnected) { h.hote.remove(); hotesChamps.delete(champ); return; }
+    placerRangee(champ);
+  });
+}
+
+function scanChampsRetenus() {
+  const page = cleDePage();
+  const entrees = MODE_ADMIN ? CHAMPS_RETENUS.filter(c => c.page === page) : [];
+  const vus = new Set();
+  entrees.forEach(entree => {
+    let champ = null;
+    try { champ = document.querySelector(entree.selecteur); } catch { /* sélecteur devenu invalide */ }
+    if (!champ) return;
+    vus.add(champ);
+    construireRangee(champ, entree);
+  });
+  hotesChamps.forEach((h, champ) => {
+    if (!vus.has(champ)) { h.hote.remove(); hotesChamps.delete(champ); }
+  });
+  placerRangees();
+}
+
+let champsObservateur = null;
+let champsMinuterie = null;
+let champsAttente = null;
+function scheduleScanChamps() {
+  clearTimeout(champsAttente);
+  champsAttente = setTimeout(scanChampsRetenus, 300);
+}
+
+// N'observe la page (MutationObserver, contrôle régulier de la position) que si elle a des champs
+// retenus et que le mode administrateur est actif : sur toute autre page, rien ne tourne.
+function majSuiviChamps() {
+  const actif = MODE_ADMIN && CHAMPS_RETENUS.some(c => c.page === cleDePage());
+  if (actif && !champsObservateur) {
+    champsObservateur = new MutationObserver((mutations) => {
+      // Nos propres rangées ne relancent pas le scan.
+      if (mutations.every(m => [...m.addedNodes, ...m.removedNodes].every(n => n.nodeType === 1 && n.hasAttribute && n.hasAttribute(CHAMP_HOTE_ATTR)))) return;
+      scheduleScanChamps();
+    });
+    champsObservateur.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('scroll', placerRangees, true);
+    window.addEventListener('resize', placerRangees);
+    champsMinuterie = setInterval(placerRangees, 1000);
+  } else if (!actif && champsObservateur) {
+    champsObservateur.disconnect();
+    champsObservateur = null;
+    window.removeEventListener('scroll', placerRangees, true);
+    window.removeEventListener('resize', placerRangees);
+    clearInterval(champsMinuterie);
+  }
+  scanChampsRetenus();
+}
+
+function chargerChampsRetenus() {
+  chrome.storage.local.get(['champsRetenus', 'adminCode'], (r) => {
+    CHAMPS_RETENUS = r.champsRetenus || [];
+    MODE_ADMIN = !!r.adminCode;
+    majSuiviChamps();
+  });
+}
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local') return;
+  if (changes.champsRetenus || changes.adminCode) chargerChampsRetenus();
+  // Les deux clausiers sont relus par le listener du haut : on reconstruit à la passe suivante.
+  else if (changes.localSnippets || changes.snippets) scheduleScanChamps();
+});
+if (document.body) chargerChampsRetenus();
+else document.addEventListener('DOMContentLoaded', chargerChampsRetenus);

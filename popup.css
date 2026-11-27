@@ -114,14 +114,14 @@ button:disabled { opacity: 0.6; cursor: default; }
 .share-actions { display: flex; gap: 6px; }
 .share-actions .btn-secondary { flex: 1; padding: 8px 10px; font-size: 12.5px; }
 
-.import, .feedback, .share {
+.admin, .import, .feedback, .share {
   display: flex;
   flex-direction: column;
   gap: 7px;
   border-top: 1px solid var(--border);
   padding-top: 10px;
 }
-.import h2, .feedback h2, .share h2 {
+.admin h2, .import h2, .feedback h2, .share h2 {
   margin: 0;
   font-family: var(--font-mono);
   font-size: 12.5px;
@@ -167,3 +167,30 @@ button:disabled { opacity: 0.6; cursor: default; }
   padding-top: 10px;
 }
 .link-btn:hover { text-decoration: underline; }
+
+/* Mode administrateur (#119) : masqué hors mode, ses pastilles reprennent les couleurs du badge. */
+.admin[hidden], .admin [hidden] { display: none; }
+.admin-ligne { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; }
+.pastille {
+  display: inline-block;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 11.5px;
+}
+.pastille.rouge { background: #d93025; color: #ffffff; }
+.pastille.jaune { background: #f9ab00; color: #000000; }
+.pastille.zero { background: var(--accent-wash); color: var(--ink-muted); }
+.mini-btn {
+  background: var(--accent-wash);
+  color: var(--accent-hover);
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.mini-btn:hover { background: var(--accent-wash); filter: brightness(0.95); }
+.admin .btn-secondary { padding: 8px 12px; font-size: 12.5px; }

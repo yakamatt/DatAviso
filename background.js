@@ -67,10 +67,17 @@ chrome.runtime.onInstalled.addListener((details) => {
       .catch(e => console.error('[DatAviso] Sauvegarde du Clausier Personnel :', e.message));
 
     scheduleAlarms();
+    majMenusAdmin().catch(e => console.error('[DatAviso] Menu du mode administrateur :', e.message));
+    actualiserBadgeAdmin().catch(e => console.error('[DatAviso] Mode administrateur :', e.message));
   })();
 });
 
-chrome.runtime.onStartup.addListener(scheduleAlarms);
+chrome.runtime.onStartup.addListener(() => {
+  scheduleAlarms();
+  majMenusAdmin().catch(e => console.error('[DatAviso] Menu du mode administrateur :', e.message));
+  // Le badge ne survit pas à un redémarrage du navigateur.
+  actualiserBadgeAdmin().catch(e => console.error('[DatAviso] Mode administrateur :', e.message));
+});
 
 // Note : pas de listener chrome.action.onClicked ici — un "default_popup" est déclaré dans le
 // manifest (popup.html), donc Chrome affiche directement le popup au clic sur l'icône et
@@ -146,6 +153,8 @@ async function synchroniser() {
       .catch(e => console.error('[DatAviso] Sauvegarde du Clausier Personnel :', e.message));
     await envoyerStatistiques()
       .catch(e => console.error('[DatAviso] Statistiques d\'utilisation :', e.message));
+    await actualiserBadgeAdmin()
+      .catch(e => console.error('[DatAviso] Mode administrateur :', e.message));
   }
 }
 
@@ -263,7 +272,9 @@ const STATS_CLES = [
   'reglage_source_hand_travail_legifrance_off', 'reglage_source_hand_travail_legifrance_on',
   'lien_sgo', 'lien_sharepoint', 'lien_explorateur',
   'import_dataviso', 'clausier_import', 'clausier_export',
-  'popup', 'parametres', 'tutoriel'
+  'popup', 'parametres', 'tutoriel',
+  'admin_activation', 'admin_desactivation', 'admin_installations_vues', 'admin_revue_tableau', 'admin_statistiques',
+  'admin_clic_droit_perso', 'admin_clic_droit_commun', 'admin_champ_plus', 'admin_champ_perso', 'admin_champ_commun', 'admin_champ_oubli'
 ];
 let fileStats = Promise.resolve();
 
@@ -376,6 +387,159 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
+// ---------- Mode administrateur (#119) ----------
+// Réservé au garant du Clausier Commun. Le code administrateur n'est jamais dans l'extension
+// (son code est public) : il est vérifié par le script Apps Script, qui n'en garde qu'une
+// empreinte. Saisi dans les Paramètres, il est retenu dans storage.local (ce poste seulement,
+// jamais synchronisé) et présenté à chaque demande, dans le corps du POST.
+//
+// Le script sert le mode administrateur en lecture seule : aucune demande n'écrit dans le
+// tableau. Un script resté en API 6 ne connaît pas ?probe=admin et renvoie le Clausier Commun :
+// on ne lui envoie alors pas le code.
+async function demandeAdmin(demande, { code, params } = {}) {
+  const { syncSettings } = await chrome.storage.sync.get(['syncSettings']);
+  const settings = syncSettings || {};
+  if (!settings.webAppUrl) throw new Error('Adresse de l\'application Web non configurée');
+  const codeAdmin = code !== undefined ? code : (await chrome.storage.local.get(['adminCode'])).adminCode;
+  if (!codeAdmin) throw new Error('Mode administrateur inactif');
+
+  const sonde = settings.webAppUrl + (settings.webAppUrl.includes('?') ? '&' : '?') + 'probe=admin';
+  let signature;
+  try {
+    signature = await (await fetch(sonde, { cache: 'no-store' })).json();
+  } catch {
+    throw new Error('Script Google Sheets injoignable ou réponse illisible');
+  }
+  if (Array.isArray(signature) || !signature || signature.api !== 'admin') {
+    throw new Error('Script Google Sheets sans mode administrateur (à redéployer en "Nouvelle version")');
+  }
+
+  const res = await fetch(settings.webAppUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ ...(params || {}), action: 'admin', code: codeAdmin, demande })
+  });
+  const data = res.ok ? await res.json().catch(() => null) : null;
+  if (!data) throw new Error(`Réponse illisible du script (${res.status})`);
+  // Code changé dans le tableau depuis l'activation : le mode se désactive sur ce poste plutôt
+  // que de réessayer à chaque synchro et d'épuiser les essais autorisés.
+  if (data.refuse && code === undefined) await chrome.storage.local.remove(['adminCode']);
+  if (!data.ok) throw new Error(data.error || 'Demande refusée');
+  return data;
+}
+
+// Compteurs de l'icône, en mode administrateur : nouvelles installations et propositions à
+// revoir. Chrome n'affiche qu'un badge, d'une seule couleur : il montre le total, en rouge s'il y
+// a une installation nouvelle, sinon en jaune ; l'infobulle et le popup détaillent les deux.
+// Une installation est « vue » quand l'administrateur la marque dans le popup (adminDepuis : date
+// de ce geste ; adminInstallationsVues : celles du jour même, que la date seule ne distingue pas).
+// Les propositions ne se marquent pas : leur nombre retombe quand la revue est préparée.
+const BADGE_ROUGE = '#d93025';
+const BADGE_JAUNE = '#f9ab00';
+
+async function actualiserBadgeAdmin() {
+  const { adminCode, adminDepuis, adminInstallationsVues } = await chrome.storage.local.get(
+    ['adminCode', 'adminDepuis', 'adminInstallationsVues']);
+  if (!adminCode) {
+    await chrome.storage.local.remove(['adminEtat']);
+    await afficherBadgeAdmin(null);
+    return null;
+  }
+  const data = await demandeAdmin('etat', { params: { depuis: adminDepuis || jourLocal() } });
+  const vues = adminInstallationsVues || [];
+  const nouvelles = (data.installations || []).filter(i => i && !vues.includes(i.ref));
+  const etat = {
+    installations: nouvelles.length,
+    refsInstallations: (data.installations || []).map(i => i.ref),
+    revue: Number(data.revue) || 0,
+    at: new Date().toISOString()
+  };
+  await chrome.storage.local.set({ adminEtat: etat });
+  await afficherBadgeAdmin(etat);
+  return etat;
+}
+
+async function afficherBadgeAdmin(etat) {
+  const inst = etat ? etat.installations : 0;
+  const revue = etat ? etat.revue : 0;
+  const total = inst + revue;
+  await chrome.action.setBadgeText({ text: total ? (total > 99 ? '99+' : String(total)) : '' });
+  if (total) {
+    await chrome.action.setBadgeBackgroundColor({ color: inst ? BADGE_ROUGE : BADGE_JAUNE });
+    // Chiffres noirs sur le jaune, blancs sur le rouge (setBadgeTextColor : Chrome 110 et plus).
+    if (chrome.action.setBadgeTextColor) await chrome.action.setBadgeTextColor({ color: inst ? '#ffffff' : '#000000' });
+  }
+  const details = [];
+  if (inst) details.push(`${inst} nouvelle${inst > 1 ? 's' : ''} installation${inst > 1 ? 's' : ''}`);
+  if (revue) details.push(`${revue} proposition${revue > 1 ? 's' : ''} à revoir`);
+  await chrome.action.setTitle({ title: details.length ? `DatAviso — ${details.join(', ')}` : 'DatAviso' });
+}
+
+// Marque les installations actuelles comme vues (bouton du popup).
+async function marquerInstallationsVues() {
+  const { adminEtat } = await chrome.storage.local.get(['adminEtat']);
+  const etat = { ...(adminEtat || {}), installations: 0 };
+  await chrome.storage.local.set({
+    adminDepuis: jourLocal(),
+    adminInstallationsVues: (adminEtat && adminEtat.refsInstallations) || [],
+    adminEtat: etat
+  });
+  await afficherBadgeAdmin(etat);
+}
+
+// ---------- Mode administrateur : clic droit sur un champ de saisie ----------
+// Le menu n'existe qu'en mode administrateur : une installation ordinaire n'a aucune entrée dans
+// le clic droit (la permission contextMenus est déclarée pour tous, elle ne sert qu'à ce menu).
+// Le clic ouvre la fenêtre de création dans le cadre cliqué (content.js). Pour une proposition au
+// Clausier Commun, la fenêtre renvoie un jeton à usage unique remis ici au clic : le script de
+// contenu ne peut demander une écriture du mode administrateur qu'à la suite de ce geste.
+const MENU_ADMIN_PERSO = 'dataviso-admin-perso';
+const MENU_ADMIN_COMMUN = 'dataviso-admin-commun';
+const JETON_DUREE_MS = 30 * 60 * 1000;
+
+async function majMenusAdmin() {
+  const { adminCode } = await chrome.storage.local.get(['adminCode']);
+  await chrome.contextMenus.removeAll();
+  if (!adminCode) return;
+  chrome.contextMenus.create({ id: MENU_ADMIN_PERSO, title: 'DatAviso : créer un snippet personnel…', contexts: ['editable', 'selection'] });
+  chrome.contextMenus.create({ id: MENU_ADMIN_COMMUN, title: 'DatAviso : proposer au Clausier Commun…', contexts: ['editable', 'selection'] });
+}
+
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (!tab || (info.menuItemId !== MENU_ADMIN_PERSO && info.menuItemId !== MENU_ADMIN_COMMUN)) return;
+  const commun = info.menuItemId === MENU_ADMIN_COMMUN;
+  compterUsage(commun ? 'admin_clic_droit_commun' : 'admin_clic_droit_perso');
+  let jeton = null;
+  if (commun) {
+    jeton = crypto.randomUUID();
+    // storage.session : le service worker peut s'arrêter pendant que la fenêtre est ouverte.
+    await chrome.storage.session.set({ jetonProposition: { jeton, expire: Date.now() + JETON_DUREE_MS } });
+  }
+  chrome.tabs.sendMessage(tab.id,
+    { type: 'DATAVISO_CLIC_DROIT', mode: commun ? 'commun' : 'perso', selection: info.selectionText || '', jeton },
+    { frameId: info.frameId || 0 },
+    // Pas de script de contenu (page chrome://, onglet ouvert avant l'installation) : rien à faire.
+    () => void chrome.runtime.lastError);
+});
+
+async function consommerJeton(jeton) {
+  const { jetonProposition } = await chrome.storage.session.get(['jetonProposition']);
+  const valide = !!jeton && !!jetonProposition && jetonProposition.jeton === jeton && jetonProposition.expire > Date.now();
+  if (valide) await chrome.storage.session.remove(['jetonProposition']);
+  return valide;
+}
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local' || !changes.adminCode) return;
+  majMenusAdmin().catch(e => console.error('[DatAviso] Menu du mode administrateur :', e.message));
+  // Nouvelle activation : seules les installations à venir sont « nouvelles ».
+  const suite = changes.adminCode.newValue
+    ? chrome.storage.local.set({ adminDepuis: jourLocal(), adminInstallationsVues: [] })
+    : chrome.storage.local.remove(['adminDepuis', 'adminInstallationsVues']);
+  suite.then(actualiserBadgeAdmin)
+    .catch(e => console.error('[DatAviso] Mode administrateur :', e.message));
+});
+
 // ---------- Messages des pages de l'extension et du script de contenu ----------
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -404,6 +568,32 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       sendResponse(reponse);
     })();
+    return true;
+  }
+  // Pages de l'extension seulement (Paramètres) : le script de contenu tourne sur toute page web
+  // et n'a pas à déclencher de demande portant le code administrateur.
+  if (msg.type === 'ADMIN') {
+    const pageExtension = sender.id === chrome.runtime.id && !!sender.url && sender.url.startsWith(chrome.runtime.getURL(''));
+    if (msg.demande === 'proposer') {
+      // Seule demande ouverte au script de contenu, et seulement avec le jeton du clic droit.
+      (sender.id === chrome.runtime.id ? consommerJeton(msg.jeton) : Promise.resolve(false))
+        .then(valide => {
+          if (!valide) throw new Error('Proposition expirée : refaites le clic droit');
+          return demandeAdmin('proposer', { params: { trigger: String(msg.trigger || ''), content: String(msg.content || '') } });
+        })
+        .then(data => sendResponse(data))
+        .catch(e => sendResponse({ ok: false, error: e.message }));
+      return true;
+    }
+    if (!pageExtension) {
+      sendResponse({ ok: false, error: 'Origine refusée' });
+      return false;
+    }
+    const action = msg.demande === 'etat' ? actualiserBadgeAdmin().then(etat => ({ ok: true, etat }))
+      : msg.demande === 'installations-vues' ? marquerInstallationsVues().then(() => ({ ok: true }))
+      : demandeAdmin(msg.demande, msg.code !== undefined ? { code: msg.code } : {});
+    action.then(data => sendResponse(data))
+      .catch(e => sendResponse({ ok: false, error: e.message }));
     return true;
   }
   if (msg.type === 'STAT') {

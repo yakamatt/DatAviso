@@ -6,6 +6,8 @@
 //                                   l'onglet "Local_Snippets_Backup" (jamais dans "Snippets")
 //   POST {action:"stats", ...}   -> statistiques d'utilisation anonymes, dans l'onglet
 //                                   "Statistiques" (une ligne par utilisateur et par jour)
+//   POST {action:"admin", ...}   -> mode administrateur de l'extension : lecture seule, sur
+//                                   présentation du code administrateur (voir plus bas)
 //
 // Et, dans le tableau lui-même, un menu « Clausier » pour le garant du Clausier Commun :
 //   Préparer la revue        -> onglet "Revue" : nouveaux déclencheurs et variantes de snippets
@@ -145,7 +147,9 @@ function json_(obj) {
 // avec le même repli : un script resté en version 4 ne reçoit rien.
 // Version 6 : plus de POST {action:"append"} ni de ?probe=append (voir doPost). L'extension ne
 // s'en servait plus depuis la v2.18.0.
-const API_VERSION = 6;
+// Version 7 : POST {action:"admin"} pour le mode administrateur, sondé par ?probe=admin. Lecture
+// seule ; un script resté en version 6 répond « Action inconnue » et le mode reste inactif.
+const API_VERSION = 7;
 
 function doGet(e) {
   if (e && e.parameter && e.parameter.probe === 'backup') {
@@ -153,6 +157,9 @@ function doGet(e) {
   }
   if (e && e.parameter && e.parameter.probe === 'stats') {
     return json_({ ok: true, api: 'stats', version: API_VERSION });
+  }
+  if (e && e.parameter && e.parameter.probe === 'admin') {
+    return json_({ ok: true, api: 'admin', version: API_VERSION });
   }
 
   const sheet = getSheet_();
@@ -169,12 +176,18 @@ function doGet(e) {
 
 // Les seules écritures ouvertes au public, toutes deux confinées à leur onglet. Aucune action
 // n'écrit dans "Snippets" (voir l'en-tête) : une version ancienne de ce script vidait même tout le
-// tableau sur n'importe quel POST.
+// tableau sur n'importe quel POST. "admin" n'écrit dans aucun onglet.
 function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
+    // Le Ref_User du garant n'est écrit que par le mode administrateur : sans ce refus, n'importe
+    // qui ferait passer sa proposition en tête de la revue sous la marque du garant.
+    if (body.action === 'backup' && String(body.refUser || '').trim() === REF_GARANT) {
+      return json_({ ok: false, error: 'Ref_User réservé' });
+    }
     if (body.action === 'backup') return json_(sauvegarderClausier_(body));
     if (body.action === 'stats') return json_(enregistrerStatistiques_(body));
+    if (body.action === 'admin') return json_(administrer_(body));
     return json_({ ok: false, error: 'Action inconnue : ' + body.action });
   } catch (err) {
     return json_({ ok: false, error: String(err) });
@@ -265,6 +278,11 @@ const DECISION_IGNORER = 'Ignorer';
 // Ajoutées à la colonne Type quand « Préparer la revue » reporte le travail de la revue précédente.
 const MARQUE_RETOUCHE = '✍️ retouche conservée';
 const MARQUE_CHANGEE = '🔄 proposition changée';
+// Proposition faite par le garant lui-même, depuis le clic droit de l'extension en mode
+// administrateur (#119) : rangée sous ce Ref_User dans "Local_Snippets_Backup", elle suit le même
+// chemin que les autres (revue, décision, Appliquer les décisions) et passe en tête de la revue.
+const REF_GARANT = 'GARANT-ADMIN';
+const MARQUE_GARANT = '🛡️ proposé par le garant';
 
 function onOpen() {
   SpreadsheetApp.getUi()
@@ -274,6 +292,8 @@ function onOpen() {
     .addSeparator()
     .addItem('Synthèse hebdomadaire des statistiques', 'syntheseHebdomadaire')
     .addItem('Synthèse mensuelle des statistiques', 'syntheseMensuelle')
+    .addSeparator()
+    .addItem('Définir le code administrateur', 'definirCodeAdministrateur')
     .addToUi();
 }
 
@@ -454,6 +474,7 @@ function preparerRevue() {
     const autres = variantes.slice(1)
       .map(v => `(${v.nb} utilisateur${v.nb > 1 ? 's' : ''})\n${v.texte}`).join('\n\n———\n\n');
     let type = commun ? '✏️ Variante' : '🆕 Nouveau';
+    if (Object.values(g.variantes).some(v => v.users[REF_GARANT])) type += '\n' + MARQUE_GARANT;
     let decision = '';
     let texteFinal = cumulTexteFinal_(commun ? commun.content : '', variantes.map(v => v.texte));
     // Ligne déjà travaillée dans la revue précédente : sa décision et son Texte final sont repris
@@ -481,7 +502,8 @@ function preparerRevue() {
       cle,
       JSON.stringify(variantes.map(v => v.texte))
     ];
-  }).sort((a, b) => parseInt(b[4], 10) - parseInt(a[4], 10) || String(a[1]).localeCompare(String(b[1])));
+  }).sort((a, b) => (String(b[0]).indexOf(MARQUE_GARANT) >= 0) - (String(a[0]).indexOf(MARQUE_GARANT) >= 0) ||
+    parseInt(b[4], 10) - parseInt(a[4], 10) || String(a[1]).localeCompare(String(b[1])));
 
   // Ce qui ne se reporte pas serait perdu en silence : une ligne travaillée qui n'est plus à revoir
   // (texte commun modifié à la main, variante supprimée…), ou une revue d'un format inconnu.
@@ -713,7 +735,18 @@ const STATS_LIBELLES = {
   clausier_export: 'Exports du Clausier Personnel',
   popup: 'Ouvertures du popup',
   parametres: 'Ouvertures des Paramètres',
-  tutoriel: 'Ouvertures du tutoriel'
+  tutoriel: 'Ouvertures du tutoriel',
+  admin_activation: 'Mode administrateur activé',
+  admin_desactivation: 'Mode administrateur désactivé',
+  admin_installations_vues: 'Administration : nouvelles installations marquées vues',
+  admin_revue_tableau: 'Administration : tableau ouvert depuis le compteur de revue',
+  admin_statistiques: 'Administration : ouvertures de la page de statistiques',
+  admin_clic_droit_perso: 'Administration : clic droit, snippet personnel',
+  admin_clic_droit_commun: 'Administration : clic droit, proposition au Clausier Commun',
+  admin_champ_plus: 'Administration : champ retenu, « + » (création)',
+  admin_champ_perso: 'Administration : champ retenu, icône jaune (Clausier Personnel)',
+  admin_champ_commun: 'Administration : champ retenu, icône bleue (Clausier Commun)',
+  admin_champ_oubli: 'Administration : champ retenu oublié'
 };
 
 function getStatsSheet_() {
@@ -903,4 +936,237 @@ function syntheseStatistiques_(periode) {
   ui.alert('Synthèse prête',
     `${lignes.length} ${hebdo ? 'semaine(s)' : 'mois'}, du plus récent au plus ancien. Les données détaillées restent dans ` +
     `l'onglet masqué « ${STATS_SHEET_NAME} », conservées ${STATS_CONSERVATION_MOIS} mois.`, ui.ButtonSet.OK);
+}
+
+
+// ============================================================================
+// MODE ADMINISTRATEUR DE L'EXTENSION (#119)
+// ============================================================================
+//
+// Le code source de l'extension est public (GitHub, paquet du Store) : un mot de passe écrit
+// dedans se lirait en deux minutes. Le code administrateur vit donc ici seul, dans les propriétés
+// du script, et seulement sous forme d'empreinte SHA-256 salée : ni l'éditeur ni une copie du
+// projet ne le montrent en clair. L'extension le présente à chaque demande (POST, jamais dans
+// l'adresse, qui finit dans les journaux), et le script ne répond qu'à ce code.
+//
+// Tout le monde peut appeler ce script : les essais ratés sont donc limités (ADMIN_ESSAIS_MAX par
+// quart d'heure, tous appelants confondus). Au-delà, le mode administrateur est suspendu pour
+// tous pendant ce quart d'heure, y compris le garant : c'est le prix de l'absence de comptes.
+//
+// Le mode administrateur n'ouvre aucune écriture vers "Snippets" (voir l'en-tête) : un code qui
+// fuit ne permet d'injecter aucun snippet chez les utilisateurs. Sa seule écriture, "proposer",
+// ajoute une ligne dans "Local_Snippets_Backup", comme la sauvegarde de n'importe quel
+// utilisateur : elle n'atteint le Clausier Commun que par la revue et la décision du garant.
+
+const ADMIN_PROPRIETE_EMPREINTE = 'adminEmpreinte';
+const ADMIN_PROPRIETE_SEL = 'adminSel';
+const ADMIN_CODE_LONGUEUR_MIN = 12;
+const ADMIN_ESSAIS_MAX = 10;
+const ADMIN_ESSAIS_DUREE_S = 15 * 60;
+
+function empreinteCode_(sel, code) {
+  const octets = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, sel + '\u0000' + code,
+    Utilities.Charset.UTF_8);
+  return octets.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
+}
+
+// Menu « Clausier > Définir le code administrateur ». Remplacer le code désactive le mode
+// administrateur sur chaque poste où l'ancien était saisi.
+function definirCodeAdministrateur() {
+  const ui = SpreadsheetApp.getUi();
+  const reponse = ui.prompt('Code administrateur',
+    `Code à saisir dans l'extension (Paramètres avancés > Mode administrateur), ${ADMIN_CODE_LONGUEUR_MIN} caractères ` +
+    'au moins. Il n\'est pas affiché ensuite : notez-le. Un nouveau code remplace l\'ancien sur tous les postes.',
+    ui.ButtonSet.OK_CANCEL);
+  if (reponse.getSelectedButton() !== ui.Button.OK) return;
+  const code = reponse.getResponseText().trim();
+  if (code.length < ADMIN_CODE_LONGUEUR_MIN) {
+    ui.alert('Code trop court', `Le code doit faire ${ADMIN_CODE_LONGUEUR_MIN} caractères au moins. Rien n'a changé.`, ui.ButtonSet.OK);
+    return;
+  }
+  const sel = Utilities.getUuid();
+  PropertiesService.getScriptProperties().setProperties({
+    [ADMIN_PROPRIETE_SEL]: sel,
+    [ADMIN_PROPRIETE_EMPREINTE]: empreinteCode_(sel, code)
+  });
+  ui.alert('Code enregistré', 'Le mode administrateur s\'active dans l\'extension avec ce code, une fois le script ' +
+    'redéployé en « Nouvelle version » (API 7 ou plus).', ui.ButtonSet.OK);
+}
+
+function codeAdminValide_(code) {
+  const props = PropertiesService.getScriptProperties();
+  const sel = props.getProperty(ADMIN_PROPRIETE_SEL);
+  const attendue = props.getProperty(ADMIN_PROPRIETE_EMPREINTE);
+  if (!sel || !attendue) return { ok: false, error: 'Aucun code administrateur défini dans le tableau (menu Clausier)' };
+
+  const cache = CacheService.getScriptCache();
+  const essais = Number(cache.get('adminEssais')) || 0;
+  if (essais >= ADMIN_ESSAIS_MAX) return { ok: false, error: 'Trop d\'essais : réessayez dans un quart d\'heure' };
+  if (typeof code === 'string' && code && empreinteCode_(sel, code) === attendue) return { ok: true };
+  cache.put('adminEssais', String(essais + 1), ADMIN_ESSAIS_DUREE_S);
+  // « refuse » : ce code-là est faux, l'extension l'oublie. Pas sur un blocage temporaire, qui
+  // désactiverait aussi le poste du garant quand un tiers a épuisé les essais.
+  return { ok: false, error: 'Code administrateur refusé', refuse: true };
+}
+
+// Une demande par fonction du mode administrateur. "verifier" sert à l'activation dans les
+// Paramètres ; les suivantes arrivent avec leurs fonctions (#119).
+function administrer_(body) {
+  const acces = codeAdminValide_(body.code);
+  if (!acces.ok) return { ...acces, api: 'admin' };
+  if (body.demande === 'verifier') return { ok: true, api: 'admin', version: API_VERSION };
+  if (body.demande === 'etat') return { ok: true, api: 'admin', ...etatAdmin_(body) };
+  if (body.demande === 'statistiques') return { ok: true, api: 'admin', ...statistiquesAdmin_() };
+  if (body.demande === 'proposer') return proposerAuClausierCommun_(body);
+  return { ok: false, api: 'admin', error: 'Demande inconnue : ' + body.demande };
+}
+
+// Clic droit « Proposer au Clausier Commun » : une ligne de sauvegarde au nom du garant, que la
+// prochaine revue affiche en tête. Même écriture confinée que la sauvegarde (texteBrut_ compris).
+function proposerAuClausierCommun_(body) {
+  const trigger = String(body.trigger || '').trim();
+  const content = String(body.content || '');
+  if (!trigger || !content.trim()) return { ok: false, api: 'admin', error: 'Déclencheur ou texte vide' };
+  if (trigger.length > 100 || content.length > 20000) return { ok: false, api: 'admin', error: 'Proposition trop longue' };
+  const r = sauvegarderClausier_({ refUser: REF_GARANT, snippets: [{ trigger, content }] });
+  return { ...r, api: 'admin' };
+}
+
+// Premier jour où chaque installation a envoyé ses statistiques : c'est sa date d'arrivée. Une
+// installation sans statistiques (case décochée) n'est jamais vue, et une installation revenue
+// après plus de STATS_CONSERVATION_MOIS mois d'absence passe pour nouvelle (ses lignes ont été
+// purgées). Le Ref_User reste dans storage.sync : une réinstallation sur le même compte Chrome
+// n'est pas comptée deux fois.
+function premiersJours_() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(STATS_SHEET_NAME);
+  const premiers = {};
+  if (!sheet || sheet.getLastRow() < 2) return premiers;
+  sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getValues().forEach(r => {
+    const ref = String(r[0]), jour = String(r[1]);
+    if (!ref || !/^\d{4}-\d{2}-\d{2}$/.test(jour)) return;
+    if (!premiers[ref] || jour < premiers[ref]) premiers[ref] = jour;
+  });
+  return premiers;
+}
+
+// Propositions que le garant n'a pas encore sous les yeux : un texte de Clausier Personnel qui
+// diffère du texte commun, n'a été ni adopté ni ignoré (Revue_Traités), et ne figure pas dans
+// l'onglet "Revue" actuel. Même filtre que preparerRevue : quand ce nombre n'est pas nul, préparer
+// la revue fera apparaître du nouveau.
+function propositionsEnAttente_() {
+  const communs = lireSnippetsCommuns_();
+  const traites = lireTraites_();
+  const dejaEnRevue = {};
+  const revue = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REVUE_SHEET_NAME);
+  if (revue) {
+    if (revue.getLastRow() >= 2) {
+      const valeurs = revue.getRange(1, 1, revue.getLastRow(), revue.getLastColumn()).getValues();
+      const cCle = valeurs[0].indexOf('Clé'), cProp = valeurs[0].indexOf('Proposition'),
+        cVar = valeurs[0].indexOf('Variantes (JSON)');
+      if (cCle >= 0 && cProp >= 0) {
+        valeurs.slice(1).forEach(r => {
+          const cle = String(r[cCle]);
+          if (!cle) return;
+          const textes = variantesLigne_(cVar >= 0 ? r[cVar] : '', r[cProp]);
+          textes.forEach(t => { (dejaEnRevue[cle] = dejaEnRevue[cle] || {})[texteNormalise_(t)] = true; });
+        });
+      }
+    }
+  }
+  const vues = {};
+  let n = 0;
+  // getSheetByName et non getBackupSheet_ : une demande du mode administrateur ne crée rien.
+  const sauvegardes = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BACKUP_SHEET_NAME);
+  if (!sauvegardes) return 0;
+  sauvegardes.getDataRange().getValues().slice(1).forEach(r => {
+    const cle = cleDeclencheur_(r[0]);
+    const texte = texteNormalise_(r[1]);
+    if (!cle || !texte) return;
+    const commun = communs[cle];
+    if (commun && texteNormalise_(commun.content) === texte) return;
+    if (traites[cle] && traites[cle][texte]) return;
+    if (dejaEnRevue[cle] && dejaEnRevue[cle][texte]) return;
+    const id = cle + '\u0000' + texte;
+    if (vues[id]) return; // la même proposition chez plusieurs utilisateurs compte une fois
+    vues[id] = true;
+    n++;
+  });
+  return n;
+}
+
+// Pour les compteurs de l'icône : les installations arrivées depuis `depuis` (inclus, par leur
+// Ref_User, que l'extension retient une fois vues) et le nombre de propositions à revoir.
+function etatAdmin_(body) {
+  const depuis = /^\d{4}-\d{2}-\d{2}$/.test(String(body.depuis)) ? String(body.depuis) : '0000-00-00';
+  const premiers = premiersJours_();
+  const installations = Object.keys(premiers).filter(ref => premiers[ref] >= depuis)
+    .map(ref => ({ ref, jour: premiers[ref] }));
+  return { installations, revue: propositionsEnAttente_() };
+}
+
+// Page de statistiques de l'extension : les totaux par jour, jamais les lignes par utilisateur.
+// Les installations y restent anonymes et ne sont que comptées.
+function statistiquesAdmin_() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(STATS_SHEET_NAME);
+  const reponse = { jours: [], versions: {}, libelles: STATS_LIBELLES, regroupements: STATS_REGROUPEMENTS,
+    conservationMois: STATS_CONSERVATION_MOIS };
+  if (!sheet || sheet.getLastRow() < 2) return reponse;
+  const valeurs = sheet.getDataRange().getValues();
+  const cles = valeurs[0].map(String).slice(STATS_COLONNES_FIXES.length);
+  const premiers = premiersJours_();
+  const parJour = {};
+  const derniereVersion = {};
+  valeurs.slice(1).forEach(r => {
+    const ref = String(r[0]), jour = String(r[1]);
+    if (!ref || !/^\d{4}-\d{2}-\d{2}$/.test(jour)) return;
+    const j = parJour[jour] = parJour[jour] || { date: jour, installes: 0, actifs: 0, nouveaux: 0, totaux: {} };
+    j.installes++;
+    if (premiers[ref] === jour) j.nouveaux++;
+    let usage = 0;
+    cles.forEach((cle, i) => {
+      const n = Number(r[STATS_COLONNES_FIXES.length + i]) || 0;
+      if (n) { j.totaux[cle] = (j.totaux[cle] || 0) + n; usage += n; }
+    });
+    if (usage) j.actifs++;
+    if (r[2] && (!derniereVersion[ref] || derniereVersion[ref].jour <= jour)) derniereVersion[ref] = { v: String(r[2]), jour };
+  });
+  reponse.jours = Object.keys(parJour).sort().map(d => parJour[d]);
+
+  // Installations et utilisateurs DISTINCTS par semaine et sur les périodes de la page : la
+  // somme des jours compterait un même poste autant de fois qu'il a servi.
+  const aujourdhui = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  const ilYa = n => Utilities.formatDate(new Date(Date.now() - (n - 1) * 86400000), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  const PERIODES = [7, 30, 90, 365];
+  const seuils = PERIODES.map(ilYa);
+  const parPeriode = PERIODES.map(() => ({ installes: {}, actifs: {} }));
+  const parSemaine = {};
+  valeurs.slice(1).forEach(r => {
+    const ref = String(r[0]), jour = String(r[1]);
+    if (!ref || !/^\d{4}-\d{2}-\d{2}$/.test(jour) || jour > aujourdhui) return;
+    const actif = cles.some((_, i) => Number(r[STATS_COLONNES_FIXES.length + i]) > 0);
+    const sem = semaineIso_(jour);
+    const w = parSemaine[sem.cle] = parSemaine[sem.cle] || { cle: sem.cle, libelle: sem.libelle, installes: {}, actifs: {}, nouveaux: 0 };
+    w.installes[ref] = true;
+    if (actif) w.actifs[ref] = true;
+    if (premiers[ref] === jour) w.nouveaux++;
+    seuils.forEach((seuil, k) => {
+      if (jour < seuil) return;
+      parPeriode[k].installes[ref] = true;
+      if (actif) parPeriode[k].actifs[ref] = true;
+    });
+  });
+  reponse.semaines = Object.keys(parSemaine).sort().map(k => {
+    const w = parSemaine[k];
+    return { cle: w.cle, libelle: w.libelle, installes: Object.keys(w.installes).length,
+      actifs: Object.keys(w.actifs).length, nouveaux: w.nouveaux };
+  });
+  reponse.periodes = {};
+  PERIODES.forEach((n, k) => {
+    reponse.periodes[n] = { depuis: seuils[k], installes: Object.keys(parPeriode[k].installes).length,
+      actifs: Object.keys(parPeriode[k].actifs).length,
+      nouveaux: Object.keys(premiers).filter(ref => premiers[ref] >= seuils[k]).length };
+  });
+  reponse.aujourdhui = aujourdhui;
+  Object.values(derniereVersion).forEach(x => { reponse.versions[x.v] = (reponse.versions[x.v] || 0) + 1; });
+  return reponse;
 }

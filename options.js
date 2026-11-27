@@ -552,6 +552,46 @@ document.getElementById('statistiques-utilisation').addEventListener('change', (
   }
 });
 
+// Mode administrateur (#119). Le code n'est retenu qu'une fois accepté par le script : un code
+// faux ou un script non redéployé laisse le mode inactif, avec la raison sous le bouton.
+function renderAdmin(actif) {
+  document.getElementById('admin-inactif').hidden = actif;
+  document.getElementById('admin-actif').hidden = !actif;
+}
+chrome.storage.local.get(['adminCode'], (r) => renderAdmin(!!r.adminCode));
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.adminCode) renderAdmin(!!changes.adminCode.newValue);
+});
+document.getElementById('admin-activer').addEventListener('click', () => {
+  const champ = document.getElementById('admin-code');
+  const statut = document.getElementById('admin-status');
+  const code = champ.value.trim();
+  if (!code) { statut.textContent = '❌ Saisissez le code administrateur.'; return; }
+  statut.textContent = '⏳ Vérification auprès du tableau…';
+  chrome.runtime.sendMessage({ type: 'ADMIN', demande: 'verifier', code }, (rep) => {
+    if (!rep || !rep.ok) {
+      statut.textContent = `❌ ${(rep && rep.error) || 'Pas de réponse'}`;
+      return;
+    }
+    champ.value = '';
+    chrome.storage.local.set({ adminCode: code }, () => {
+      renderAdmin(true);
+      statut.textContent = '✅ Mode administrateur activé.';
+      compterUsage('admin_activation');
+    });
+  });
+});
+document.getElementById('admin-code').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('admin-activer').click();
+});
+document.getElementById('admin-desactiver').addEventListener('click', () => {
+  chrome.storage.local.remove(['adminCode'], () => {
+    renderAdmin(false);
+    document.getElementById('admin-status').textContent = 'Mode administrateur désactivé sur ce poste.';
+    compterUsage('admin_desactivation');
+  });
+});
+
 // Liens vers l'affaire (SGO, SharePoint, Explorateur) : content.js écoute syncSettings et pose
 // ou retire les icônes aussitôt, sans recharger Aviso.
 [['lien-sgo', 'lienSgo'], ['lien-sharepoint', 'lienSharepoint'], ['lien-explorateur', 'lienExplorateur']]

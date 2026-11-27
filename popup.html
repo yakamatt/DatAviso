@@ -14,6 +14,20 @@
     <button id="open-clausier">📒 Modifier le Clausier Personnel</button>
     <a href="#" id="open-sheet-link" target="_blank" rel="noopener noreferrer" class="btn-secondary">📄 Consulter le Clausier Commun</a>
 
+    <section class="admin" id="admin" hidden>
+      <h2>🛡️ Administration</h2>
+      <div class="admin-ligne">
+        <span><span class="pastille rouge" id="admin-inst-n">0</span> <span id="admin-inst-libelle">nouvelle installation</span></span>
+        <button type="button" id="admin-inst-vu" class="mini-btn" hidden>Vu</button>
+      </div>
+      <div class="admin-ligne">
+        <span><span class="pastille jaune" id="admin-revue-n">0</span> <span id="admin-revue-libelle">proposition à revoir</span></span>
+        <a href="#" id="admin-revue-tableau" target="_blank" rel="noopener noreferrer" class="mini-btn" hidden>Tableau</a>
+      </div>
+      <button type="button" id="admin-stats" class="btn-secondary">📊 Statistiques d'utilisation</button>
+      <p class="hint" id="admin-status"></p>
+    </section>
+
     <section class="import">
       <h2>📥 DatAviso AI</h2>
       <p class="hint" id="import-count"></p>

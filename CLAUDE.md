@@ -24,7 +24,8 @@ jamais avoir « testé », dis ce que tu as vérifié et comment.
 | `sitesecurite-articles.js` | Tables des articles ERP, Habitation et code du travail → URL sitesecurite.com |
 | `legifrance-articles.js` | Tables des articles HAND, ERP, Habitation et code du travail → URL Légifrance (identifiants relevés, contrôlés par empreinte) |
 | `background.js` | Service worker : synchro Sheets, sauvegarde du Clausier Personnel, statistiques d'utilisation, ouverture du tutoriel, alarmes |
-| `options.js/html/css` | Page Paramètres : Clausier Personnel, DatAviso AI, paramètres avancés |
+| `options.js/html/css` | Page Paramètres : Clausier Personnel, DatAviso AI, paramètres avancés (dont l'activation du mode administrateur) |
+| `statistiques.js/html/css` | Page de statistiques du mode administrateur, graphiques SVG écrits à la main |
 | `popup.js/html/css` | Popup de l'icône : lien du tutoriel, liens vers les deux clausiers, import DatAviso AI, formulaire de retour, partage |
 | `tutoriel.js/html/css` | Tutoriel visuel sur une seule page (clausiers, puis ergonomie Aviso, #120) : maquettes HTML avec les vraies icônes, pas de captures d'écran |
 | `partage.js` | Lien d'installation du Store à copier ou envoyer, utilisé par le popup |
@@ -44,11 +45,15 @@ de « simplifier ».
    **Clausier > Appliquer les décisions**, lancé par le garant depuis le tableau : il remplace un
    texte commun seulement sur sa décision, après l'avoir copié dans `Historique`, et jamais si ce
    texte a changé depuis la préparation de la revue.
-2. **`doPost` n'accepte que `backup` et `stats`, chacun confiné à son onglet.** Une version
+2. **`doPost` n'accepte que `backup`, `stats` et `admin`, chacun confiné à son onglet.** Une version
    ancienne faisait `clearContents()` puis réécrivait : un POST vers un script non redéployé a
    réellement vidé le tableau (v2.15.0). `sauvegarderClausier_` met à jour une ligne par couple
    `Ref_User` + déclencheur dans `Local_Snippets_Backup`, `enregistrerStatistiques_` une ligne par
-   `Ref_User` + date dans `Statistiques`, jamais ailleurs. **Tout texte d'utilisateur écrit dans
+   `Ref_User` + date dans `Statistiques`, jamais ailleurs. `admin` (mode administrateur, v2.35.0)
+   exige le code administrateur, dont le script ne garde qu'une empreinte (jamais dans
+   l'extension, dont le code est public). Il lit, et sa seule écriture, la proposition du garant,
+   passe par `sauvegarderClausier_` sous le `Ref_User` réservé `GARANT-ADMIN` (refusé à la
+   sauvegarde publique) : elle n'atteint `Snippets` que par la revue. **Tout texte d'utilisateur écrit dans
    une cellule passe par `texteBrut_`** : sans l'apostrophe qu'elle ajoute, Sheets lit « => voir
    plan » comme une formule (#ERROR!, texte perdu, puis propagé au Clausier Commun par la revue).
 3. **Sonder avant d'écrire.** La sauvegarde fait un GET `?probe=backup`, les statistiques
@@ -69,7 +74,9 @@ de « simplifier ».
    refusée pour `activeTab`, demandée mais jamais appelée. `host_permissions` liste les seuls
    hôtes contactés par `fetch` ; ajouter un hôte ou une API, c'est d'abord l'ajouter au manifeste
    et à la justification « Privacy practices » (README, section 6 d), et mettre à jour
-   `PRIVACY.md`, la politique de confidentialité publiée sur le Store.
+   `PRIVACY.md`, la politique de confidentialité publiée sur le Store. `contextMenus` (v2.35.0)
+   ne sert qu'au clic droit du mode administrateur : `majMenusAdmin` ne crée le menu qu'avec un
+   code actif.
 8. **Le Clausier Personnel ne se restaure que par l'export.** Il vit dans le navigateur, une
    désinstallation l'efface. La copie anonyme du Sheets n'est **jamais relue** par l'extension :
    c'est une matière pour enrichir le Clausier Commun, pas une sauvegarde. Elle reste
@@ -173,9 +180,29 @@ Les icônes s'insèrent dans la cellule « Dispositions réalisées », dans l'o
 - L'intégration est toujours active sur Aviso (le réglage « Intégration Aviso » a été retiré en
   v2.18.0) et sans effet ailleurs (`isAvisoSite`).
 
+## Mode administrateur
+
+Réservé au garant (#119). Code défini par le menu **Clausier > Définir le code administrateur**,
+saisi dans Paramètres avancés, retenu dans `storage.local` (`adminCode`, ce poste seulement) et
+présenté à chaque demande `admin` dans le corps du POST, après la sonde `?probe=admin`. Seul un
+code **refusé** est oublié (`refuse`), jamais un blocage temporaire (10 essais / 15 min, pour tous).
+- Les pages de l'extension seules envoient le message `ADMIN` ; le script de contenu n'a droit qu'à
+  `proposer`, avec le jeton à usage unique remis au clic droit (`storage.session`).
+- Badge : un seul texte, une seule couleur dans Chrome. Total, rouge s'il y a une installation
+  nouvelle, sinon jaune ; détail dans l'infobulle et le popup. Installation = premier jour de
+  `Statistiques` d'un `Ref_User` ; « Vu » retient la date (`adminDepuis`) et les refs du jour.
+- Champs retenus (`champsRetenus`, storage.local, jamais envoyés) : page = origine + chemin,
+  sélecteur unique (`selecteurDuChamp`). Icônes d'Aviso par déclencheur (« + » gris ou jaune, puis
+  bleue), en SVG écrit dans content.js (`ICONE_CHAMP_*`) : rendre les fichiers d'icônes « web
+  accessible » à tous les sites laisserait toute page détecter l'extension. Shadow DOM sur `<body>`, position absolue,
+  jamais dans la mise en page du site ; un clic **ajoute** à la fin (`ajouterAuChamp`), jamais de
+  remplacement. Observateur et minuterie seulement sur une page qui a des champs retenus.
+- Revue en attente (`propositionsEnAttente_`) : même filtre que `preparerRevue`, moins ce qui est
+  déjà dans l'onglet `Revue`.
+
 ## Apps Script
 
-`API_VERSION` dans `Code.gs` (v6 aujourd'hui) est la poignée de main avec l'extension. Après
+`API_VERSION` dans `Code.gs` (v7 aujourd'hui) est la poignée de main avec l'extension. Après
 **toute** modification : Déployer > Gérer les déploiements > crayon > **« Nouvelle version »**.
 Choisir « Version la plus récente » laisse l'ancien code en service — c'est l'erreur classique, le
 guide complet est en commentaire en tête de `Code.gs`.
@@ -233,7 +260,7 @@ et **Version cible**, qui groupe ce qui part dans un même envoi.
     changé, rappeler le redéploiement « Nouvelle version » (section Apps Script).
   - **« push store »** : d'abord « push gh » si le travail n'est pas sur `main`, puis, depuis
     `main`, le zip du paquet seul (`zip -r … manifest.json *.js *.html *.css icons -x '*.DS_Store'`,
-    soit les 26 fichiers habituels) dans `dist/` et le dossier `../Chrome store/`, nommé
+    soit les 29 fichiers habituels depuis la v2.35.0) dans `dist/` et le dossier `../Chrome store/`, nommé
     `snippet-expander-vX.Y.Z.zip`. Puis, par **Claude in Chrome** dans le Chrome de l'utilisateur
     (déjà connecté au Developer Dashboard) : fiche de l'extension > Package > envoi du zip,
     contrôle que la version affichée est la nouvelle, **Submit for review**. Avant : vérifier que
