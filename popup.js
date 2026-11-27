@@ -87,7 +87,7 @@ document.getElementById('import-file').addEventListener('change', (e) => {
 renderImportCount();
 
 // ---------- Partage ----------
-// Code commun avec le tutoriel : partage.js.
+// Lien de partage : partage.js.
 brancherPartage(
   document.getElementById('share-copy'),
   document.getElementById('share-mail'),
