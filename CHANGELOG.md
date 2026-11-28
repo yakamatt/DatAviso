@@ -1,5 +1,10 @@
 # Changelog — DatAviso
 
+## v2.35.1 — 2026-11-28
+- **Sécurité : une page ne peut plus faire développer un déclencheur pour lire le snippet** (#124, audit H1). Le script tourne sur tous les sites : une page pouvait écrire `/GN4` dans un champ caché, simuler la saisie, puis relire le champ, et obtenir ainsi le texte du snippet, y compris la version personnelle d'un déclencheur commun. L'expansion exige maintenant une saisie réelle : un évènement de confiance, précédé d'une vraie touche sur le même champ. Le seul test `isTrusted` ne suffisait pas : `document.execCommand('insertText')` produit une saisie « de confiance » sans aucune touche
+- Effet visible : un déclencheur **collé à la souris** ou **dicté** ne se développe plus. La frappe, Ctrl/Cmd+V et les claviers à composition (accents, IME) fonctionnent comme avant
+- Aucune action nouvelle, donc aucun compteur ; `Code.gs` et le tutoriel ne changent pas
+
 ## v2.35.0 — 2026-11-27
 - **Mode administrateur, réservé au garant du Clausier Commun** (#119). Le code administrateur se définit dans le tableau, avec le menu **Clausier > Définir le code administrateur** (12 caractères au moins), puis s'active dans **Paramètres avancés > Mode administrateur**. Le code n'est pas dans l'extension, dont le code est public : le script n'en garde qu'une empreinte et vérifie chaque demande. Après 10 essais ratés en un quart d'heure, le mode est suspendu un quart d'heure. Un code changé dans le tableau désactive le mode sur les postes qui avaient l'ancien. Il ne s'active que sur le poste où il est saisi
 - **Clic droit sur un champ de saisie ou un texte sélectionné, sur tout site** (mode administrateur seulement) : « DatAviso : créer un snippet personnel… » ou « DatAviso : proposer au Clausier Commun… ». La fenêtre reprend le texte sélectionné, à défaut le contenu du champ, et demande un déclencheur. Une proposition **n'écrit jamais dans le Clausier Commun** : elle arrive dans la prochaine revue, en tête et marquée 🛡️ *proposé par le garant*, et ne s'applique qu'avec « Appliquer les décisions ». Elle peut aussi s'ajouter au Clausier Personnel (case cochée par défaut), pour s'en servir aussitôt
