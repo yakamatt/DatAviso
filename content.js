@@ -350,8 +350,36 @@ function scheduleExpansion(fn) {
   }, EXPANSION_DELAY_MS);
 }
 
+// ---------- Saisie réelle seulement (#124) ----------
+// Ce script tourne sur toutes les pages : une page qui ferait écrire un déclencheur dans un
+// champ caché, puis relirait ce champ après l'expansion, obtiendrait le texte du snippet, y
+// compris la version personnelle d'un déclencheur commun. On ne développe donc qu'une saisie de
+// l'utilisateur :
+// - e.isTrusted écarte un `new Event('input')` émis par la page ;
+// - mais document.execCommand('insertText') produit un évènement `input` *de confiance*, sans
+//   aucune touche (vérifié dans Chromium). On exige donc aussi une touche réelle (keydown de
+//   confiance), sur le même élément, juste avant. Une page ne peut pas simuler de keydown de
+//   confiance. Le délai couvre la composition (IME, touches mortes), où l'input suit la touche.
+// Effet assumé : un déclencheur collé à la souris ou dicté ne se développe plus. Coller au
+// clavier (Ctrl/Cmd+V) reste une touche, comme avant. Les insertions de l'extension elle-même
+// (dispatchEvent, execCommand d'ajouterAuChamp) ne relancent plus d'expansion.
+const FRAPPE_VALIDITE_MS = 1000;
+const dernieresFrappes = new WeakMap(); // document -> { cible, instant }
+
+function noterFrappe(e, doc) {
+  if (!e.isTrusted) return;
+  dernieresFrappes.set(doc, { cible: e.target, instant: performance.now() });
+}
+
+function saisieAuClavier(e, doc) {
+  if (!e.isTrusted) return false;
+  const frappe = dernieresFrappes.get(doc);
+  return !!frappe && frappe.cible === e.target && performance.now() - frappe.instant < FRAPPE_VALIDITE_MS;
+}
+
 function surSaisie(e, doc) {
   if (!ACTIVE_SNIPPETS.length) return;
+  if (!saisieAuClavier(e, doc)) return;
   const el = e.target;
 
   if (el && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && /^(text|search|email|url)$/i.test(el.type)))) {
@@ -361,6 +389,7 @@ function surSaisie(e, doc) {
   }
 }
 
+document.addEventListener('keydown', (e) => noterFrappe(e, document), true);
 document.addEventListener('input', (e) => surSaisie(e, document), true);
 
 // ---------- Éditeurs riches dans une iframe vide (TinyMCE) ----------
@@ -375,7 +404,7 @@ document.addEventListener('input', (e) => surSaisie(e, document), true);
 // L'ancien listener est retiré avant d'en poser un nouveau, pour ne jamais en avoir deux.
 // Les iframes à src, où ce script tourne déjà (all_frames), sont ignorées : sinon double expansion.
 // (srcdoc non plus n'est pas injecté : l'attribut src est alors absent, l'iframe est donc liée.)
-const editeursLies = new WeakMap(); // document de l'iframe -> { body, ecouteur }
+const editeursLies = new WeakMap(); // document de l'iframe -> { body, ecouteur, ecouteurFrappe }
 
 function lierEditeurRiche(iframe) {
   // Sans src (ou about:, javascript:), Chrome n'injecte pas ce script dans l'iframe. On teste
@@ -392,10 +421,15 @@ function lierEditeurRiche(iframe) {
   if (!doc || !doc.body) return;
   const lie = editeursLies.get(doc);
   if (lie && lie.body === doc.body) return;
-  if (lie) doc.removeEventListener('input', lie.ecouteur, true);
+  if (lie) {
+    doc.removeEventListener('input', lie.ecouteur, true);
+    doc.removeEventListener('keydown', lie.ecouteurFrappe, true);
+  }
   const ecouteur = (e) => surSaisie(e, doc);
+  const ecouteurFrappe = (e) => noterFrappe(e, doc);
+  doc.addEventListener('keydown', ecouteurFrappe, true);
   doc.addEventListener('input', ecouteur, true);
-  editeursLies.set(doc, { body: doc.body, ecouteur });
+  editeursLies.set(doc, { body: doc.body, ecouteur, ecouteurFrappe });
 }
 
 function lierEditeursRiches(racine = document) {
